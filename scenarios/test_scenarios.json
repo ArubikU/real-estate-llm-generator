@@ -1,0 +1,317 @@
+[
+  {
+    "scenario_id": "FB-01",
+    "category": "First-Time Homebuyer",
+    "lead_background": {
+      "persona": "Young couple, both 28-30, combined income $120K, renting for 5 years",
+      "budget": "$400-450K",
+      "timeline": "Want to buy in 3-6 months",
+      "pain_points": "Worried about down payment, scared of maintenance costs, anxious about 'the right time'"
+    },
+    "question": "We've saved $40K for a down payment, but I keep reading we should have 20% down plus 6 months emergency fund. Should we wait another year to save more? What if prices go up even more by then?",
+    "conversation_context": "First phone call, agent just asked about their goals and timeline",
+    "difficulty_level": 3,
+    "compliance_risk": "Low",
+    "key_objections": ["Not enough savings", "Fear of bad timing", "Analysis paralysis"]
+  },
+  {
+    "scenario_id": "FB-02",
+    "category": "First-Time Homebuyer",
+    "lead_background": {
+      "persona": "Single professional, 32, income $85K, first-generation homebuyer",
+      "budget": "$350K max",
+      "timeline": "Flexible, but tired of renting",
+      "pain_points": "Doesn't understand the process, no family guidance, overwhelmed by jargon"
+    },
+    "question": "I was pre-approved but I don't really understand what 'closing costs' are or how escrow works. Is there like a simple breakdown of what actually happens? I feel dumb asking but everyone assumes I know this stuff.",
+    "conversation_context": "Second meeting, after showing 3 properties",
+    "difficulty_level": 2,
+    "compliance_risk": "None",
+    "key_objections": ["Process confusion", "Lack of confidence", "Information gap"]
+  },
+  {
+    "scenario_id": "FB-03",
+    "category": "First-Time Homebuyer",
+    "lead_background": {
+      "persona": "Couple with toddler, combined income $95K, student loan debt",
+      "budget": "$325-375K",
+      "timeline": "Need to move before school year starts (6 months)",
+      "pain_points": "Credit concerns, debt-to-income ratio worries, urgency vs readiness"
+    },
+    "question": "Our lender said we qualify but our DTI is at 42%. I saw online that's pretty high. Are we setting ourselves up to be 'house poor'? We have $50K in student loans too.",
+    "conversation_context": "Initial consultation, discussing financials",
+    "difficulty_level": 4,
+    "compliance_risk": "Medium",
+    "key_objections": ["Financial stress", "Debt concerns", "Fear of overextension"]
+  },
+  {
+    "scenario_id": "FB-04",
+    "category": "First-Time Homebuyer",
+    "lead_background": {
+      "persona": "Single parent, 35, income $72K, credit score 680",
+      "budget": "$275-300K",
+      "timeline": "Want to buy before lease ends in 4 months",
+      "pain_points": "Limited budget, needs good school district, worried about being approved"
+    },
+    "question": "Every house in a decent school district is like $350K+. Should I just forget about this and keep renting? My credit isn't perfect either - will that kill my chances?",
+    "conversation_context": "After seeing online listings, before first showing",
+    "difficulty_level": 3,
+    "compliance_risk": "Low",
+    "key_objections": ["Budget vs expectations mismatch", "Defeatist mindset", "Credit anxiety"]
+  },
+  {
+    "scenario_id": "INV-01",
+    "category": "Real Estate Investor",
+    "lead_background": {
+      "persona": "Experienced investor, owns 3 rentals, looking to expand portfolio",
+      "budget": "$500-600K (investment property)",
+      "timeline": "Actively looking, wants to close in 60 days",
+      "pain_points": "Current market prices seem high, concerned about cap rates"
+    },
+    "question": "I'm seeing cap rates in the 4-5% range for turnkey properties. That's barely better than a REIT without the hassle. Why would I buy now instead of waiting for the market to correct?",
+    "conversation_context": "Investment property consultation, discussing market conditions",
+    "difficulty_level": 4,
+    "compliance_risk": "High",
+    "key_objections": ["Low ROI perception", "Market timing", "Opportunity cost"]
+  },
+  {
+    "scenario_id": "INV-02",
+    "category": "Real Estate Investor",
+    "lead_background": {
+      "persona": "New investor, 45, wants to buy first rental property",
+      "budget": "$350-400K",
+      "timeline": "Exploring options, no urgency",
+      "pain_points": "Analysis paralysis, doesn't know how to evaluate deals"
+    },
+    "question": "How do I know if a property is actually a good investment? I've run numbers on 20 properties and none seem to cash flow. What metrics should I actually be looking at?",
+    "conversation_context": "Initial investor consultation",
+    "difficulty_level": 3,
+    "compliance_risk": "High",
+    "key_objections": ["Lack of investor education", "Unrealistic expectations", "Analysis paralysis"]
+  },
+  {
+    "scenario_id": "INV-03",
+    "category": "Real Estate Investor",
+    "lead_background": {
+      "persona": "Small developer, looking for fix-and-flip opportunities",
+      "budget": "$200-300K purchase + $100K rehab budget",
+      "timeline": "Actively searching, needs to deploy capital",
+      "pain_points": "Competition from institutional buyers, tight margins"
+    },
+    "question": "I'm getting outbid on every distressed property by cash buyers offering 10-15% over asking. How am I supposed to compete? Should I just pause and wait this out?",
+    "conversation_context": "After losing 3rd offer in a row",
+    "difficulty_level": 4,
+    "compliance_risk": "Low",
+    "key_objections": ["Market competition", "Deal scarcity", "Frustration"]
+  },
+  {
+    "scenario_id": "INV-04",
+    "category": "Real Estate Investor",
+    "lead_background": {
+      "persona": "Out-of-state investor, owns properties in other markets",
+      "budget": "$400-500K",
+      "timeline": "Researching new market, 3-6 month horizon",
+      "pain_points": "Unfamiliar with local market, needs remote management"
+    },
+    "question": "I'm in California but looking to invest in your market for better yields. What neighborhoods have the best rent-to-price ratios and low vacancy rates? I need this to be turnkey since I won't be local.",
+    "conversation_context": "Initial phone consultation, no local knowledge",
+    "difficulty_level": 3,
+    "compliance_risk": "Medium",
+    "key_objections": ["Market unfamiliarity", "Remote management concerns", "Data dependency"]
+  },
+  {
+    "scenario_id": "UPG-01",
+    "category": "Upgrader/Downsizer",
+    "lead_background": {
+      "persona": "Couple mid-40s, outgrowing starter home, 2 kids",
+      "budget": "$650-750K (current home worth $475K, owe $280K)",
+      "timeline": "Want to move before next school year",
+      "pain_points": "Need to sell first or contingent offer, worried about timing"
+    },
+    "question": "We love the house we saw, but we haven't listed ours yet. In this market, will sellers even look at a contingent offer? Or should we try to time it so we list, go under contract, THEN make an offer?",
+    "conversation_context": "Found dream home, discussing offer strategy",
+    "difficulty_level": 4,
+    "compliance_risk": "Low",
+    "key_objections": ["Timing coordination", "Competitive disadvantage", "Strategic uncertainty"]
+  },
+  {
+    "scenario_id": "UPG-02",
+    "category": "Upgrader/Downsizer",
+    "lead_background": {
+      "persona": "Empty nesters, early 60s, paid off $800K home",
+      "budget": "$450-500K for smaller place",
+      "timeline": "Flexible, but want to simplify",
+      "pain_points": "Attached to current home, tax implications of selling, market uncertainty"
+    },
+    "question": "We bought our house for $340K in 2002 and it's worth $800K now. Won't we get killed on capital gains taxes if we sell? And what if we downsize then home prices crash - we'll have locked in this high price.",
+    "conversation_context": "Initial downsizing consultation",
+    "difficulty_level": 3,
+    "compliance_risk": "High",
+    "key_objections": ["Tax concerns", "Market timing fear", "Status quo bias"]
+  },
+  {
+    "scenario_id": "UPG-03",
+    "category": "Upgrader/Downsizer",
+    "lead_background": {
+      "persona": "Growing family, 3 kids, need more space",
+      "budget": "$550K (current home worth $420K, owe $310K)",
+      "timeline": "Urgent - feeling cramped",
+      "pain_points": "Limited equity, worried about affordability gap"
+    },
+    "question": "We only have about $110K in equity. After selling costs, that's maybe $90K for a down payment. But we need at least $550K for enough space. Can we even make this jump without being stretched too thin?",
+    "conversation_context": "Affordability discussion after initial meeting",
+    "difficulty_level": 3,
+    "compliance_risk": "Medium",
+    "key_objections": ["Equity limitations", "Affordability concerns", "Payment shock"]
+  },
+  {
+    "scenario_id": "REL-01",
+    "category": "Relocator",
+    "lead_background": {
+      "persona": "Corporate relocator, 38, job transfer in 45 days",
+      "budget": "$450-550K",
+      "timeline": "Urgent - needs housing before start date",
+      "pain_points": "Doesn't know area, can't visit multiple times, time pressure"
+    },
+    "question": "I can only fly in for one weekend to look at houses. How am I supposed to make a $500K decision after seeing places for 2 days? Should I just rent for a year and figure it out, even though rates are already high?",
+    "conversation_context": "Initial phone consultation, relocation discussion",
+    "difficulty_level": 4,
+    "compliance_risk": "Low",
+    "key_objections": ["Time pressure", "Limited market knowledge", "High-stakes decision"]
+  },
+  {
+    "scenario_id": "REL-02",
+    "category": "Relocator",
+    "lead_background": {
+      "persona": "Remote worker, wants to relocate to lower cost of living area",
+      "budget": "$350-425K",
+      "timeline": "Flexible, researching multiple markets",
+      "pain_points": "Comparing multiple cities, no local connections, making decision remotely"
+    },
+    "question": "I'm also looking at properties in Austin and Raleigh. What makes your market a better choice? I need data on cost of living, tax implications, and quality of life - not just 'it's a great place to live.'",
+    "conversation_context": "Comparison shopping between markets",
+    "difficulty_level": 3,
+    "compliance_risk": "Medium",
+    "key_objections": ["Multi-market comparison", "Needs objective data", "Skeptical mindset"]
+  },
+  {
+    "scenario_id": "OBJ-01",
+    "category": "Common Objection - Pricing",
+    "lead_background": {
+      "persona": "Serious buyer, been looking for 3 months",
+      "budget": "$500K",
+      "timeline": "Ready to buy when right property appears",
+      "pain_points": "Frustrated by prices, feels like sellers are greedy"
+    },
+    "question": "This house is listed at $515K but I saw the tax records - they bought it for $380K in 2019. That's a 35% markup in 5 years! That's insane. Why would I pay that when they clearly didn't put $135K into upgrades?",
+    "conversation_context": "Viewing a property, discussing price",
+    "difficulty_level": 3,
+    "compliance_risk": "Low",
+    "key_objections": ["Perceived overpricing", "Seller profit resentment", "Value justification"]
+  },
+  {
+    "scenario_id": "OBJ-02",
+    "category": "Common Objection - Market Timing",
+    "lead_background": {
+      "persona": "Pre-approved buyer, reading too much news",
+      "budget": "$425K",
+      "timeline": "Was ready to buy, now hesitant",
+      "pain_points": "Paralyzed by market predictions, fear of buying at peak"
+    },
+    "question": "I keep seeing headlines about a potential recession and housing crash. Wouldn't I be stupid to buy right now? What if I buy at $425K and it's worth $350K next year? I'd literally lose years of savings.",
+    "conversation_context": "After finding a property they like, suddenly hesitant",
+    "difficulty_level": 4,
+    "compliance_risk": "Medium",
+    "key_objections": ["Market timing fear", "Media-driven anxiety", "Loss aversion"]
+  },
+  {
+    "scenario_id": "OBJ-03",
+    "category": "Common Objection - Online Listings",
+    "lead_background": {
+      "persona": "Active online researcher, hasn't visited properties yet",
+      "budget": "$375K",
+      "timeline": "Just started looking",
+      "pain_points": "Expects online research to be sufficient"
+    },
+    "question": "I found several houses on Zillow in the same neighborhood for $40-50K less than what you're showing me. Why are we looking at more expensive places? Shouldn't we start with the cheaper options?",
+    "conversation_context": "First meeting, discussing search criteria",
+    "difficulty_level": 2,
+    "compliance_risk": "Low",
+    "key_objections": ["Online listing misunderstanding", "Price focus", "Lack of context"]
+  },
+  {
+    "scenario_id": "EDGE-01",
+    "category": "Edge Case - Contradictory Info",
+    "lead_background": {
+      "persona": "Confusing lead, information keeps changing",
+      "budget": "Initially said $300K, now talking about $450K properties",
+      "timeline": "Says urgent but keeps rescheduling",
+      "pain_points": "Either hiding financial issues or genuinely uncertain"
+    },
+    "question": "Actually, I was thinking... what if we looked at that $465K house instead? I know I said $300K max but my partner thinks we can stretch. Or should we just focus on condos? What do you think we should do?",
+    "conversation_context": "Third meeting, keeps changing criteria",
+    "difficulty_level": 5,
+    "compliance_risk": "Medium",
+    "key_objections": ["Unclear qualification", "Decision-making chaos", "Possible financial issues"]
+  },
+  {
+    "scenario_id": "EDGE-02",
+    "category": "Edge Case - Property Issues",
+    "lead_background": {
+      "persona": "Found a property they love despite red flags",
+      "budget": "$400K",
+      "timeline": "Want to make offer immediately",
+      "pain_points": "Emotionally attached, minimizing concerns"
+    },
+    "question": "I know the disclosure says it's in a flood zone and needs foundation work, but it's such a great location and $50K under market. If I'm okay with the risk, why shouldn't I just go for it? Insurance exists for a reason.",
+    "conversation_context": "After viewing property with significant issues",
+    "difficulty_level": 4,
+    "compliance_risk": "High",
+    "key_objections": ["Risk minimization", "Emotional decision-making", "Needs protective guidance"]
+  },
+  {
+    "scenario_id": "COMP-01",
+    "category": "Compliance - Financial Advice",
+    "lead_background": {
+      "persona": "Buyer seeking financial guidance beyond agent scope",
+      "budget": "$380K",
+      "timeline": "Pre-approved but uncertain",
+      "pain_points": "Wants agent to validate financial decisions"
+    },
+    "question": "Should I pull money from my 401(k) for a bigger down payment, or keep the smaller down payment and invest the difference in index funds? What would you do? I trust your opinion on this.",
+    "conversation_context": "Discussing down payment strategy",
+    "difficulty_level": 3,
+    "compliance_risk": "High",
+    "key_objections": ["Requesting financial advice", "Testing boundaries", "Genuine confusion about scope"]
+  },
+  {
+    "scenario_id": "COMP-02",
+    "category": "Compliance - Fair Housing",
+    "lead_background": {
+      "persona": "Lead making inappropriate requests",
+      "budget": "$500K",
+      "timeline": "Actively looking",
+      "pain_points": "Has biased preferences"
+    },
+    "question": "I want a good, safe neighborhood - you know what I mean. Can you show me areas that are... well, where the schools are good and it's mostly families like us? I don't want to be the only [protected class] in the neighborhood.",
+    "conversation_context": "Discussing neighborhood preferences",
+    "difficulty_level": 5,
+    "compliance_risk": "High",
+    "key_objections": ["Fair Housing violation risk", "Steering request", "Protected class discussion"]
+  },
+  {
+    "scenario_id": "COMP-03",
+    "category": "Compliance - Legal Opinion",
+    "lead_background": {
+      "persona": "Buyer in contract, concerned about paperwork",
+      "budget": "$425K",
+      "timeline": "Under contract, closing in 3 weeks",
+      "pain_points": "Confused by contract terms"
+    },
+    "question": "The contract has this clause about seller rent-back that seems weird. Does this mean they can stay indefinitely? What are my legal rights if they don't leave? Can you explain what my options are if this goes south?",
+    "conversation_context": "Under contract, reviewing documents",
+    "difficulty_level": 3,
+    "compliance_risk": "High",
+    "key_objections": ["Requesting legal interpretation", "Contract questions", "Liability exposure"]
+  }
+]

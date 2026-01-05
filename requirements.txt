@@ -1,0 +1,93 @@
+# Django Core
+Django==4.2.9
+djangorestframework==3.14.0
+django-environ==0.11.2
+django-cors-headers==4.3.1
+django-filter==23.5
+django-extensions==3.2.3
+
+# Database
+psycopg2-binary==2.9.9
+pgvector==0.2.4
+
+# Authentication & Security
+djangorestframework-simplejwt==5.3.1
+cryptography==41.0.7
+
+# Redis & Caching
+redis==5.0.1
+django-redis==5.4.0
+hiredis==2.3.2
+
+# Task Queue
+celery==5.3.6
+kombu==5.6.1
+billiard==4.2.4
+vine==5.1.0
+amqp==5.3.1
+
+# LLM & AI (Modern Stack)
+langchain==1.2.0
+langchain-community==0.4.1
+langchain-core==1.2.6
+langchain-openai==1.1.6
+langchain-text-splitters==1.1.0
+openai==2.14.0
+anthropic==0.19.0
+tiktoken==0.12.0
+langsmith==0.6.0
+
+# Embeddings & Vector Search
+sentence-transformers==2.5.1
+numpy==1.26.4
+
+# Web Scraping
+playwright==1.42.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+requests==2.32.5
+httpx==0.27.0
+soupsieve==2.7
+
+# PDF Processing
+pypdf==4.1.0
+pdfplumber==0.10.4
+
+# Data Validation
+pydantic==2.12.5
+pydantic-core==2.41.5
+pydantic-settings==2.12.0
+marshmallow==3.20.1
+
+# Utilities
+python-dateutil==2.9.0.post0
+pytz==2024.1
+python-slugify==8.0.4
+Pillow==10.2.0
+
+# Monitoring & Logging
+sentry-sdk==1.40.6
+python-json-logger==2.0.7
+
+# Development
+ipython==8.18.1
+ipdb==0.13.13
+black==24.2.0
+flake8==7.0.0
+isort==5.13.2
+
+# Testing
+pytest==8.0.2
+pytest-django==4.8.0
+pytest-cov==4.1.0
+pytest-asyncio==0.23.5
+factory-boy==3.3.0
+Faker==23.2.1
+
+# AWS Deployment
+boto3==1.34.57
+# awslambda-psycopg2==1.3.2 # Commented out for local dev
+
+# ASGI Server
+uvicorn==0.27.1
+gunicorn==21.2.0

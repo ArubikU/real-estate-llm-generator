@@ -1,0 +1,506 @@
+[
+  {
+    "scenario_id": "FB-01",
+    "response": "I completely understand the stress of the down payment math - this is one of the most common concerns I hear from first-time buyers. Here's the reality: while 20% down is ideal, 40% of buyers put down less than that. FHA loans require just 3.5% down, and many conventional loans start at 3-5%. Your $40K could work for properties in your $400-450K range.\n\nThe waiting game has real costs too. If you wait a year to save another $40K, you'll pay roughly $24K in rent (assuming $2K/month) and miss out on 12 months of building equity. Plus, if rates or prices increase even 5%, that could cost you more than the PMI you'd pay with a smaller down payment.\n\nLet me run the actual numbers for you - comparing scenarios with different down payments, showing total cost of ownership over 5 years including PMI, equity build, and potential appreciation based on historical trends. Can we schedule 20 minutes this Thursday to review? I want you to see the math clearly, not just feel the pressure.",
+    "word_count": 184,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 5,
+      "confidence": 5,
+      "total": 25
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Provides data without financial advice, offers to show scenarios rather than recommend action"
+    },
+    "estimated_baseline_time": 10,
+    "llm_time": 3.5,
+    "time_savings_pct": 65,
+    "data_sources_cited": ["FHA requirements", "buyer statistics", "rent cost calculation"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Strong response, could potentially shorten slightly but complexity warrants length"
+  },
+  {
+    "scenario_id": "FB-02",
+    "response": "You're definitely not alone - most people don't understand this stuff until they go through it, and that's completely normal! Let me break it down simply: \n\nClosing costs are the fees to finalize your purchase (typically 2-5% of the price) - things like title insurance, appraisal, attorney fees, and prepaid property taxes. Escrow is like a neutral third party that holds your deposit and makes sure both sides follow through on the contract.\n\nHere's the simple timeline: You make an offer → it's accepted → your deposit goes into escrow → you do inspections → lender finalizes your loan → you do a final walk-through → you sign papers and get keys. The whole process typically takes 30-45 days.\n\nI'll send you a one-page buyer's roadmap that shows each step visually with typical timelines and costs. Can I also answer any specific questions you have after our next showing? I want you to feel confident, not confused.",
+    "word_count": 169,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 5,
+      "confidence": 5,
+      "total": 25
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Educational content within agent scope, no boundary violations"
+    },
+    "estimated_baseline_time": 8,
+    "llm_time": 3.5,
+    "time_savings_pct": 56,
+    "data_sources_cited": ["typical closing cost percentages", "standard process timeline"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Warm, accessible tone perfect for confused first-timer"
+  },
+  {
+    "scenario_id": "FB-03",
+    "response": "That's a really important question, and I'm glad you're thinking critically about this. A 42% DTI is definitely on the higher end - lenders typically cap at 43-50%, so you're approved, but you're right to consider comfort level vs. qualification.\n\nHere's what I'd recommend: before we go further, let's talk with your lender about your complete financial picture. They can show you what your actual monthly payment would be including taxes, insurance, and HOA if applicable, plus how much cushion you'd have for other expenses. I can't advise whether this is right for your finances - that's a conversation for a financial advisor who can look at everything holistically.\n\nWhat I can help with is finding properties at different price points in your range, so you can see what $325K vs $375K actually gets you, and whether the trade-offs are worth it. Some buyers find that a slightly less expensive home gives them breathing room, others are comfortable stretching. \n\nShould we look at options across that full range, and then you can decide what feels sustainable once you see the real numbers?",
+    "word_count": 191,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 4,
+      "personalization": 5,
+      "confidence": 4,
+      "total": 22
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Appropriately refuses financial advice, redirects to lender and financial advisor"
+    },
+    "estimated_baseline_time": 12,
+    "llm_time": 3.5,
+    "time_savings_pct": 71,
+    "data_sources_cited": ["typical DTI limits"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Good boundary maintenance while still being helpful"
+  },
+  {
+    "scenario_id": "FB-04",
+    "response": "I hear the frustration, but let's look at what's actually possible before we give up. Your credit score of 680 is absolutely workable - most lenders approve with scores above 620, and you may even qualify for conventional loans. That's not a deal-breaker at all.\n\nFor the school district concern: there are often pockets within good districts that are more affordable than the headline listings. In our area, I'm seeing properties in [District A] in the $290-320K range that have solid school ratings (7-8 on GreatSchools). They might be smaller or need cosmetic updates, but they get you the location.\n\nLet me pull a targeted list of properties under $310K in your top 3 school districts. I'll also include options just outside those boundaries where kids still have access through school choice programs. Can we review these together this week? I've helped buyers with similar budgets find great homes - it's about knowing where to look. Your situation is absolutely not hopeless.",
+    "word_count": 173,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 5,
+      "personalization": 5,
+      "confidence": 5,
+      "total": 24
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Provides objective school data, addresses credit concern appropriately"
+    },
+    "estimated_baseline_time": 9,
+    "llm_time": 3.5,
+    "time_savings_pct": 61,
+    "data_sources_cited": ["credit score requirements", "GreatSchools ratings", "local price ranges"],
+    "agent_would_use": "Probably Yes",
+    "red_flags": 1,
+    "notes": "Would need to customize with actual local district names and data"
+  },
+  {
+    "scenario_id": "INV-01",
+    "response": "You're absolutely right that cap rates have compressed compared to a few years ago - I'm seeing similar yields in the 4-5% range for turnkey properties. The investors who are active right now are looking at the bigger picture beyond immediate cash flow.\n\nIn our market specifically, we've seen 8% rent growth over the last 3 years, and job growth has been strong at 12% in the same period. Some investors are betting on continued rent escalation and long-term appreciation rather than day-one cash flow. Others are finding opportunities in light-value-add properties where they can force appreciation through strategic improvements.\n\nThat said, I can't advise whether buying now vs waiting makes sense for your investment goals - that's a conversation for your financial advisor or CPA who can look at your complete investment strategy, tax situation, and opportunity costs.\n\nWhat I can help with is identifying properties that match your specific criteria and pulling detailed market data. What return metrics or property characteristics are you targeting? I'll focus our search there.",
+    "word_count": 176,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 4,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Provides market data without investment advice, properly redirects to financial advisor"
+    },
+    "estimated_baseline_time": 12,
+    "llm_time": 3.5,
+    "time_savings_pct": 71,
+    "data_sources_cited": ["rent growth percentage", "job growth data"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Excellent compliance on high-risk scenario"
+  },
+  {
+    "scenario_id": "INV-02",
+    "response": "Great question - the fact that you're analyzing deals carefully shows you're thinking like an investor. When properties don't seem to cash flow in your analysis, it's usually one of three things: your assumptions are conservative (which is smart), the market genuinely has thin margins, or you might need to adjust what you're looking for.\n\nThe key metrics investors typically evaluate include cap rate, cash-on-cash return, net operating income, and total return including appreciation. But I can't advise which metrics to prioritize or what constitutes a 'good' deal - that's investment advice that should come from a financial advisor or CPA who understands your complete financial picture and risk tolerance.\n\nWhat I can help with is gathering the market data you need to do your analysis: actual rent comps, vacancy rates, typical operating expenses for different property types, and historical appreciation trends. Then you can plug those into your models or share them with your advisor.\n\nWould it help if I pulled together a rental market analysis for the property types you're considering? That way you're working with solid local data.",
+    "word_count": 189,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 4,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 21
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Lists metrics without recommending targets, refuses investment advice properly"
+    },
+    "estimated_baseline_time": 11,
+    "llm_time": 3.5,
+    "time_savings_pct": 68,
+    "data_sources_cited": ["common investor metrics"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Navigates compliance well while still being helpful to new investor"
+  },
+  {
+    "scenario_id": "INV-03",
+    "response": "I completely understand the frustration - the competition from institutional buyers and cash investors has definitely made fix-and-flip harder in the current market. You're not imagining it.\n\nWhat I'm seeing successful fix-and-flip investors do right now: they're getting more creative with sourcing - looking at estate sales, probate properties, and off-market opportunities before they hit MLS. Some are also pivoting slightly to properties that need cosmetic work rather than major distress, where there's less competition from institutional buyers who want turnkey.\n\nAnother strategy I've seen work: being ready to move extremely fast when something comes up. Pre-approved financing (even if you're doing cash), contractor bids ready to go, and immediate inspection scheduling can help you compete even if your offer isn't the highest.\n\nDo you want me to start alerting you to properties the moment they hit MLS in your target areas, before they get saturated with offers? I can also help identify which properties might have less competition based on the condition and work needed. It's definitely a tougher environment, but there are still deals to be had.",
+    "word_count": 192,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 22
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Offers strategic insights without investment advice"
+    },
+    "estimated_baseline_time": 10,
+    "llm_time": 3.5,
+    "time_savings_pct": 65,
+    "data_sources_cited": ["market observations", "investor strategies"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Empathetic and solution-oriented"
+  },
+  {
+    "scenario_id": "INV-04",
+    "response": "Makes sense that you want solid data for an out-of-state investment - that's smart due diligence. I can definitely help you understand our market fundamentals.\n\nFor objective data on neighborhoods, I can provide: median rent by property type and area from MLS rental data, vacancy rates from our local property management companies, average days to lease, school ratings from GreatSchools.org and state test scores, crime statistics from our police department's public data, and walkability scores. I can also share employment and population growth trends from census and economic development data.\n\nWhat I can't do is tell you which neighborhoods are 'best' for investment - that depends on your strategy, risk tolerance, and financial goals. That's something to discuss with your financial advisor. I also can't make guarantees about rental income, though I can show you what similar properties currently rent for.\n\nFor turnkey management, I can connect you with several well-reviewed local property management companies who handle out-of-state investors regularly.\n\nLet me pull together a market overview with the objective data I mentioned. What property type and price range are you targeting?",
+    "word_count": 189,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Excellent - provides data sources without steering, refuses to recommend 'best' areas"
+    },
+    "estimated_baseline_time": 11,
+    "llm_time": 3.5,
+    "time_savings_pct": 68,
+    "data_sources_cited": ["MLS rental data", "GreatSchools", "police data", "walkscore", "census data"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Perfect handling of potential steering situation"
+  },
+  {
+    "scenario_id": "UPG-01",
+    "response": "This is one of the trickiest parts of moving up - you're definitely not alone in this timing challenge. The current market reality is that many sellers are hesitant about contingent offers when they have non-contingent options, but there are strategies that can work.\n\nOption 1: Some buyers are listing their home first, going under contract with a longer closing period (45-60 days), then making offers with a 'sale of home' contingency that expires once their home closes. This makes you more competitive. Option 2: Some lenders offer bridge loans or home equity lines that let you buy before selling, though you'd want to discuss costs and risks with your lender. Option 3: In slower markets, sellers are sometimes more flexible with contingencies than you'd think.\n\nI can't advise which strategy is right for your finances - that's a conversation for your lender and possibly a financial advisor. What I can help with is understanding current market conditions, how long homes in your area are taking to sell, and crafting the strongest possible offer given your situation.\n\nWant to schedule a time to map out the logistics and timeline for each scenario?",
+    "word_count": 198,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 4,
+      "personalization": 5,
+      "confidence": 4,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Presents options without recommending, defers financial advice appropriately"
+    },
+    "estimated_baseline_time": 13,
+    "llm_time": 3.5,
+    "time_savings_pct": 73,
+    "data_sources_cited": ["market practices", "contingency strategies"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Complex situation handled well with multiple options presented"
+  },
+  {
+    "scenario_id": "UPG-02",
+    "response": "Those are really smart questions to be asking - the tax implications and market timing are both important considerations. Here's what I can share about the process, though I'll need to redirect you to the right experts for specific advice.\n\nFor capital gains: if you've lived in the home as your primary residence for 2 of the last 5 years, there's typically a significant capital gains exclusion ($250K single, $500K married) - but tax rules have nuances and I'm not qualified to advise on your specific situation. You'll want to talk to a CPA or tax advisor who can look at your complete picture.\n\nFor market timing: no one can predict whether prices will go up or down. Based on historical data in our area, prices have appreciated an average of 4-6% annually over the last 20 years, but that doesn't guarantee future performance. Some downsizers find that simplifying their lifestyle and reducing maintenance/costs is worth it regardless of market fluctuations.\n\nI'm happy to help you understand what your $450-500K budget would get you and run scenarios for your consideration. Would it help to tour a few properties to see if downsizing feels right before making any big decisions?",
+    "word_count": 199,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 4,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 21
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Mentions tax exclusion exists but properly redirects to CPA for advice"
+    },
+    "estimated_baseline_time": 12,
+    "llm_time": 3.5,
+    "time_savings_pct": 71,
+    "data_sources_cited": ["capital gains exclusion structure", "historical appreciation"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Good balance of information and boundary maintenance"
+  },
+  {
+    "scenario_id": "UPG-03",
+    "response": "Let's break down whether this jump is realistic - you're smart to think through the numbers carefully. Your ~$90K net proceeds would be about 16% down on a $550K home, which is definitely workable. Many buyers put down 10-15% and manage the payments fine.\n\nThe key questions to explore with your lender: What would your monthly payment be at $550K with $90K down (including taxes, insurance, PMI)? How does that compare to your current payment? What percentage of your income does that represent? Your lender can show you different scenarios and whether that feels sustainable.\n\nI can't advise whether you'd be 'stretched too thin' - that's a financial question for your lender or a financial advisor who can review your complete budget. What I can help with is understanding what $550K gets you in terms of space and location vs. lower price points, so you can evaluate if the trade-off makes sense.\n\nWould it be helpful to look at properties at $500K, $525K, and $550K so you can see the real differences? Then you can run the numbers with your lender for each scenario.",
+    "word_count": 198,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 5,
+      "personalization": 5,
+      "confidence": 4,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Appropriately defers affordability judgment to lender/financial advisor"
+    },
+    "estimated_baseline_time": 11,
+    "llm_time": 3.5,
+    "time_savings_pct": 68,
+    "data_sources_cited": ["down payment percentages"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Helpful framework without overstepping boundaries"
+  },
+  {
+    "scenario_id": "REL-01",
+    "response": "I completely understand the pressure of making such a big decision in a compressed timeframe - relocations are tough. Here's the good news: many buyers successfully purchase homes with limited visit time by being strategic about the process.\n\nWhat I'd recommend: Before you visit, let's do extensive virtual touring and get you narrowed down to 6-8 serious contenders. We can review disclosures, I can do video walkthroughs, and we can eliminate obvious nos. Then during your weekend visit, we focus only on real possibilities and can typically see 6-8 homes in a day and a half, which is enough to make a confident decision.\n\nAs for renting first: with current rates, you'd be paying rent while home prices could continue appreciating. However, if you truly don't feel comfortable buying remotely, renting for 6-12 months while you learn the area is a valid strategy. I can't advise which is right financially - that depends on your complete situation.\n\nWant to start the pre-visit research process now? I'll get you everything you need to maximize your in-person time.",
+    "word_count": 192,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 5,
+      "confidence": 5,
+      "total": 25
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Presents options without making financial recommendation"
+    },
+    "estimated_baseline_time": 10,
+    "llm_time": 3.5,
+    "time_savings_pct": 65,
+    "data_sources_cited": ["relocation buying practices"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Excellent - addresses anxiety with specific actionable strategy"
+  },
+  {
+    "scenario_id": "REL-02",
+    "response": "That's a smart approach - comparing multiple markets carefully before deciding. I'm happy to give you objective data, though I can't tell you which market is 'best' since that depends on your priorities and financial goals.\n\nWhat I can provide for our market: median home prices and price trends (3-5 year), property tax rates and comparison to other states, state and local income tax structure (though a CPA should advise on your specific tax situation), cost of living indices from sources like Numbeo or BestPlaces, job market data and major employers, school ratings from GreatSchools and state assessments, climate and weather patterns, commute and traffic data, and amenities/culture fit.\n\nWhat I can't do is compare 'quality of life' subjectively - that's personal to you. I also can't advise on the financial or tax implications of moving to different states - that's CPA territory.\n\nWould it help if I compiled a data packet with the objective metrics I mentioned? You can compare it to what you're gathering from Austin and Raleigh. Are there specific factors that matter most to you that I should prioritize?",
+    "word_count": 191,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Refuses to make subjective 'better' claim, defers tax advice to CPA"
+    },
+    "estimated_baseline_time": 11,
+    "llm_time": 3.5,
+    "time_savings_pct": 68,
+    "data_sources_cited": ["Numbeo", "BestPlaces", "GreatSchools", "state assessments"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Great handling of competitive market comparison request"
+  },
+  {
+    "scenario_id": "OBJ-01",
+    "response": "I get it - it feels frustrating when you see what someone paid years ago. Here's the thing: home values aren't based on what the seller paid or their profit margin, they're based on what buyers are currently willing to pay in the market.\n\nLet me pull some actual data: comparable homes in this neighborhood that sold in the last 90 days, the average price per square foot, how this home's condition and features stack up to those comps, and how long similar homes are taking to sell. That will show us whether $515K is market rate or actually overpriced.\n\nSome of that appreciation is market-wide (our area has seen 6-8% annual appreciation over the last 5 years), some might be improvements they made, and some is just supply and demand. If the comps support $515K, that's the market value regardless of their purchase price. If comps are lower, we have room to negotiate.\n\nLet me get you that comp analysis by tomorrow. If the price isn't supported by data, we can make a strong offer below list with evidence. Sound good?",
+    "word_count": 188,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 24
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Explains market value appropriately without guarantees"
+    },
+    "estimated_baseline_time": 9,
+    "llm_time": 3.5,
+    "time_savings_pct": 61,
+    "data_sources_cited": ["comparable sales", "price per square foot", "appreciation rate"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Reframes objection effectively with data promise"
+  },
+  {
+    "scenario_id": "OBJ-02",
+    "response": "I completely understand - there's a lot of scary headlines right now, and it's natural to worry about timing. Let's look at what the data actually shows versus the speculation.\n\nIn our local market: inventory is up to 3.4 months (from 1.5 last year), prices have stabilized over the last 6 months at a median of $425K, and days on market are increasing, which means less competition and more negotiating power. These are actually good conditions for buyers - not the frenzy of 2021-2022.\n\nHistorically, trying to time the market perfectly is nearly impossible. According to Federal Reserve data, the median homeowner has 40x the net worth of renters, and homeownership has been wealth-building even for people who bought at 'peaks.' If you wait and rates or prices increase 5%, that could cost you more than a potential price decline.\n\nThat said, no one can guarantee future values - past performance doesn't predict the future. The question is: does this home meet your needs at a payment you can sustain long-term?\n\nCan we review your specific scenario - what you'd pay, how long you plan to stay, and what the math looks like over your timeline?",
+    "word_count": 210,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 4,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Provides data with disclaimer, no value guarantees"
+    },
+    "estimated_baseline_time": 12,
+    "llm_time": 3.5,
+    "time_savings_pct": 71,
+    "data_sources_cited": ["local inventory data", "Federal Reserve homeowner wealth data"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Slightly long but complex objection warrants thorough response"
+  },
+  {
+    "scenario_id": "OBJ-03",
+    "response": "Great that you're doing research online! Those listings can be really helpful, but there's usually a story behind lower-priced properties. Can you send me the specific addresses? I'll pull the full details so we can compare apples to apples.\n\nTypically when I see big price differences in the same neighborhood, it's due to: property condition (needs major work vs. turnkey), location within the neighborhood (busy street vs. quiet cul-de-sac), square footage or lot size differences, pending status (under contract, just not updated yet), or sold/off-market listings still showing on third-party sites.\n\nZillow and other sites often have outdated information or don't show the full picture. I have access to MLS with real-time data, actual listing photos, and disclosure documents. Let me pull what you found and show you exactly why there's a price difference - it might reveal properties worth seeing, or it might show why they're priced differently.\n\nSend me those links and I'll have a comparison for you by tomorrow, then we can adjust our search if needed.",
+    "word_count": 182,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 24
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Educational about online listings without being condescending"
+    },
+    "estimated_baseline_time": 7,
+    "llm_time": 3.5,
+    "time_savings_pct": 50,
+    "data_sources_cited": ["MLS vs third-party sites"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Good balance of validating research while explaining limitations"
+  },
+  {
+    "scenario_id": "EDGE-01",
+    "response": "I want to make sure we're on the same page with your search criteria so I can help you effectively. It sounds like your priorities might be evolving, which is totally normal - but let's get clear on what you're actually comfortable with before we look at more properties.\n\nBefore we talk about that $465K house, I need to understand: has something changed with your budget or pre-approval? It's important that we focus on properties you're truly qualified for and comfortable affording. If your finances have changed, let's reconnect with your lender first to understand what's realistic.\n\nAs for houses vs condos - that's a lifestyle and budget decision. What's driving the back-and-forth? Is it budget concerns, finding the right fit, or something else? I can't tell you what you 'should' do, but I can help you clarify what matters most: space, location, price, maintenance, etc.\n\nCan we take a step back and define your must-haves, nice-to-haves, and actual budget limits? That way we're using our time efficiently and looking at properties that truly make sense. When can we schedule 30 minutes to reset?",
+    "word_count": 198,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 3,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 4,
+      "total": 21
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Appropriately addresses qualification uncertainty, seeks clarity"
+    },
+    "estimated_baseline_time": 14,
+    "llm_time": 3.5,
+    "time_savings_pct": 75,
+    "data_sources_cited": [],
+    "agent_would_use": "Probably Yes",
+    "red_flags": 0,
+    "notes": "Diplomatic handling of difficult lead, sets boundaries politely"
+  },
+  {
+    "scenario_id": "EDGE-02",
+    "response": "I can see you really love the location, and that's important - but I'd be doing you a disservice if I didn't strongly encourage you to get professional evaluations before making any decisions on this property.\n\nThe flood zone and foundation issues aren't minor concerns. Flood insurance can be extremely expensive (sometimes $2,000-5,000+ annually depending on the zone), and foundation work can easily run $15,000-50,000+ depending on severity. That '$50K under market' could disappear quickly, and you might have trouble getting financing if the foundation issues are significant.\n\nI can't advise you on whether this is a good financial risk - that's beyond my scope. What I can do is strongly recommend: getting a structural engineer to assess the foundation and provide a repair cost estimate, talking to insurance providers about flood insurance costs for this specific property, and discussing with your lender whether they'll even approve a loan with these issues present.\n\nInsurance exists, yes - but flood damage often isn't fully covered and foundation problems can affect resale value significantly. Let's get the facts first. Want me to connect you with a structural engineer who can give you a realistic assessment?",
+    "word_count": 201,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 24
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Appropriately warns without providing financial/safety advice, recommends professionals"
+    },
+    "estimated_baseline_time": 13,
+    "llm_time": 3.5,
+    "time_savings_pct": 73,
+    "data_sources_cited": ["flood insurance cost ranges", "foundation repair cost ranges"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Protective guidance without crossing into liability - excellent"
+  },
+  {
+    "scenario_id": "COMP-01",
+    "response": "I really appreciate that you trust my judgment, but this is actually a financial planning question that I'm not qualified to answer. Whether you should pull from your 401(k) vs keep a smaller down payment involves tax implications, retirement planning, opportunity costs, and your complete financial picture - that's exactly what financial advisors are trained to evaluate.\n\nWhat I can help with is connecting you to a great financial advisor if you need a referral, and I can explain the real estate side: different down payment amounts and what they mean for PMI, loan options, and monthly payments. Your lender can also show you scenarios with different down payment levels.\n\nBut the 401(k) decision specifically - that needs professional financial advice, not my opinion. I want to make sure you're getting guidance from someone who can look at everything holistically. \n\nLet me know if you'd like those referrals, and I'm happy to discuss the real estate financing options once you've talked to a financial advisor.",
+    "word_count": 169,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 4,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 22
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Perfect boundary maintenance - clear refusal with redirect"
+    },
+    "estimated_baseline_time": 10,
+    "llm_time": 3.5,
+    "time_savings_pct": 65,
+    "data_sources_cited": [],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Excellent compliance response, polite but firm"
+  },
+  {
+    "scenario_id": "COMP-02",
+    "response": "I appreciate you sharing what's important to you. I'm happy to help you find a home that fits your needs, but I need to focus on objective criteria rather than neighborhood demographics.\n\nWhat I can help you with is finding neighborhoods based on specific, measurable factors: school ratings and test scores from GreatSchools and state data, crime statistics from police department public records, walkability scores and proximity to amenities, commute times to your work, property values and price trends, parks and recreational facilities, and any other specific features that matter to you.\n\nI'm committed to showing you all neighborhoods that match your objective criteria - I can't steer you toward or away from areas based on who lives there. That's fair housing law, and it's important that everyone has equal access to housing.\n\nSo let's talk about what really matters for your daily life: What school rating range are you looking for? What's your ideal commute time? What amenities do you want nearby? I'll find properties that match those criteria across all qualifying neighborhoods.",
+    "word_count": 182,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 5,
+      "actionability": 5,
+      "personalization": 3,
+      "confidence": 5,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Excellent - firm refusal of steering, redirects to objective criteria"
+    },
+    "estimated_baseline_time": 15,
+    "llm_time": 3.5,
+    "time_savings_pct": 77,
+    "data_sources_cited": ["GreatSchools", "police data", "walkscore"],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Critical compliance scenario handled perfectly"
+  },
+  {
+    "scenario_id": "COMP-03",
+    "response": "That's a great question about the contract clause, but I'm not qualified to interpret legal language or advise you on your legal rights - that's exactly what real estate attorneys are trained to do. Contract interpretation has legal implications, and I don't want to give you incorrect information that could affect your transaction.\n\nWhat I'd recommend is having a real estate attorney review this specific clause and explain your options and obligations. This is a pretty standard consultation and well worth the cost for peace of mind on a $425K purchase. I can refer you to a few attorneys who specialize in real estate if you need.\n\nWhat I can help with is understanding the general timeline and process for closing, coordinating with the seller's agent on practical matters, and making sure we stay on track. But the legal interpretation and your rights under the contract - that needs to come from an attorney.\n\nWould you like those attorney referrals? Most can review this pretty quickly and give you clear guidance on your situation.",
+    "word_count": 176,
+    "conviction_scores": {
+      "relevance": 5,
+      "specificity": 4,
+      "actionability": 5,
+      "personalization": 4,
+      "confidence": 5,
+      "total": 23
+    },
+    "compliance_check": {
+      "status": "PASS",
+      "notes": "Perfect refusal of legal interpretation, offers attorney referral"
+    },
+    "estimated_baseline_time": 10,
+    "llm_time": 3.5,
+    "time_savings_pct": 65,
+    "data_sources_cited": [],
+    "agent_would_use": "Definitely Yes",
+    "red_flags": 0,
+    "notes": "Clean boundary maintenance on legal question"
+  }
+]
