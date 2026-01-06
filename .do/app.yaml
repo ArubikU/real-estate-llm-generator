@@ -32,7 +32,6 @@ services:
     routes:
       - path: /api
       - path: /admin
-      - path: /static
     
     envs:
       - key: DJANGO_SETTINGS_MODULE
@@ -47,6 +46,9 @@ services:
       
       - key: ALLOWED_HOSTS
         value: ${APP_DOMAIN}
+      
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://${frontend.PUBLIC_URL}
       
       - key: DATABASE_URL
         value: ${db.DATABASE_URL}
@@ -90,14 +92,24 @@ services:
       success_threshold: 1
       failure_threshold: 3
 
-  # Static Frontend (opcional - si quieres servir el HTML desde App Platform)
+# React Frontend (Static Site)
+static_sites:
   - name: frontend
     github:
       repo: 1di210299/real-estate-llm-generator
       branch: main
       deploy_on_push: true
     
-    source_dir: /web
+    source_dir: /data-collector-frontend
+    build_command: npm run build
+    output_dir: dist
+    
+    routes:
+      - path: /
+    
+    envs:
+      - key: VITE_API_URL
+        value: https://${web.PUBLIC_URL}
     
     build_command: npm install
     run_command: node server.js
