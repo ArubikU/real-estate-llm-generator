@@ -52,7 +52,7 @@ function App() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [confidence, setConfidence] = useState(0)
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
   const WEBSITES: Record<string, WebsiteConfig> = {
     encuentra24: {
@@ -195,7 +195,7 @@ function App() {
 
   const loadHistoryFromBackend = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/properties/?page_size=100&ordering=-created_at`)
+      const response = await fetch(`${API_BASE}/v1/properties/?page_size=100&ordering=-created_at`)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -210,7 +210,7 @@ function App() {
 
   const loadPropertyFromHistory = async (propertyId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/properties/${propertyId}/`)
+      const response = await fetch(`${API_BASE}/v1/properties/${propertyId}/`)
       const property = await response.json()
       setExtractedProperty(property)
       setConfidence(property.extraction_confidence || 0.9)
@@ -228,10 +228,10 @@ function App() {
       return
     }
     try {
-      const response = await fetch(`${API_BASE}/api/v1/properties/?page_size=100`)
+      const response = await fetch(`${API_BASE}/v1/properties/?page_size=100`)
       const data = await response.json()
       for (const prop of data.results) {
-        await fetch(`${API_BASE}/api/v1/properties/${prop.id}/`, { method: 'DELETE' })
+        await fetch(`${API_BASE}/v1/properties/${prop.id}/`, { method: 'DELETE' })
       }
       alert('History cleared successfully')
       loadHistoryFromBackend()
@@ -255,7 +255,7 @@ function App() {
     setError('')
 
     try {
-      const endpoint = inputType === 'url' ? `${API_BASE}/api/v1/ingest/url/` : `${API_BASE}/api/v1/ingest/text/`
+      const endpoint = inputType === 'url' ? `${API_BASE}/v1/ingest/url/` : `${API_BASE}/v1/ingest/text/`
       const body = inputType === 'url' 
         ? { url, source_website: sourceWebsite } 
         : { text, source_website: sourceWebsite }
@@ -292,7 +292,7 @@ function App() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/v1/ingest/save/`, {
+      const response = await fetch(`${API_BASE}/v1/ingest/save/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
