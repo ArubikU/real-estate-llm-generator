@@ -1,7 +1,7 @@
 # =============================================================================
 # DIGITAL OCEAN APP PLATFORM CONFIGURATION
 # =============================================================================
-name: kp-real-estate-data-collector
+name: kp-realestate
 region: nyc
 
 # Django Backend API
@@ -32,6 +32,7 @@ services:
     routes:
       - path: /api
       - path: /admin
+      - path: /static
     
     envs:
       - key: DJANGO_SETTINGS_MODULE
