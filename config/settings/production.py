@@ -5,8 +5,29 @@ Production settings
 from .base import *
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+import re
 
 DEBUG = False
+
+# Custom ALLOWED_HOSTS validation for internal IPs
+class AllowInternalIPs:
+    def __init__(self, allowed_hosts):
+        self.allowed_hosts = allowed_hosts
+        
+    def __iter__(self):
+        return iter(self.allowed_hosts)
+    
+    def __contains__(self, host):
+        # Remove port if present
+        host = host.split(':')[0]
+        # Allow internal/private IPs (Docker, Kubernetes, DO internal)
+        if re.match(r'^(10\.|172\.|192\.168\.|100\.127\.)', host):
+            return True
+        return host in self.allowed_hosts
+
+# Wrap ALLOWED_HOSTS
+_original_allowed_hosts = ALLOWED_HOSTS
+ALLOWED_HOSTS = AllowInternalIPs(_original_allowed_hosts)
 
 # Security settings
 SECURE_SSL_REDIRECT = True
