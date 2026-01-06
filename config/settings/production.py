@@ -56,4 +56,6 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 # CORS - specify exact origins
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS')
+CORS_ALLOWED_ORIGINS = [
+    origin.rstrip('/') for origin in env.list('CORS_ALLOWED_ORIGINS')
+]
