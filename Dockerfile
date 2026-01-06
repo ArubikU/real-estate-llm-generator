@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     fonts-liberation \
+    fonts-noto-color-emoji \
+    fonts-unifont \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -41,8 +43,9 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
-# Install Playwright browsers (skip dependency check since we installed them manually)
-RUN playwright install chromium --with-deps
+# Install Playwright browsers WITHOUT system dependencies (we already installed them)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+RUN playwright install chromium
 
 # Copy project
 COPY . .
