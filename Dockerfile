@@ -46,7 +46,14 @@ RUN pip install --upgrade pip && \
 # Install Playwright browsers WITHOUT system dependencies validation
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 \
     PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1
-RUN playwright install chromium
+
+RUN echo "========================================" && \
+    echo "Installing Playwright Chromium..." && \
+    echo "========================================" && \
+    playwright install chromium && \
+    echo "========================================" && \
+    echo "✅ Playwright installation completed!" && \
+    echo "========================================"
 
 # Copy project
 COPY . .
