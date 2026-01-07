@@ -64,6 +64,12 @@ function App() {
       baseUrl = baseUrl.slice(0, -1)
     }
     
+    // Remover /api si ya viene incluido en VITE_API_URL (DigitalOcean lo agrega automáticamente)
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4)
+      console.log('🔧 [API CONFIG] Removed /api suffix, new baseUrl:', baseUrl)
+    }
+    
     console.log('✅ [API CONFIG] Final API_BASE:', baseUrl)
     return baseUrl
   }
