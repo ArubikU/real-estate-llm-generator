@@ -16,7 +16,10 @@ class TenantMiddleware(MiddlewareMixin):
     def process_request(self, request):
         """Set current tenant on request."""
         
+        print(f"🔍 TenantMiddleware - Full URL: {request.build_absolute_uri()}")
         print(f"🔍 TenantMiddleware - Path: {request.path}")
+        print(f"🔍 TenantMiddleware - Method: {request.method}")
+        print(f"🔍 TenantMiddleware - Headers: {dict(request.headers)}")
         
         # Skip tenant check for admin, auth, health, static, ingest, and properties endpoints
         if (request.path.startswith('/admin/') or 

@@ -56,15 +56,20 @@ function App() {
   const getApiBase = () => {
     let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     
+    console.log('🔧 [API CONFIG] Raw VITE_API_URL:', import.meta.env.VITE_API_URL)
+    console.log('🔧 [API CONFIG] Initial baseUrl:', baseUrl)
+    
     // Remover trailing slash si existe
     if (baseUrl.endsWith('/')) {
       baseUrl = baseUrl.slice(0, -1)
     }
     
+    console.log('✅ [API CONFIG] Final API_BASE:', baseUrl)
     return baseUrl
   }
 
   const API_BASE = getApiBase()
+  console.log('🌐 [API CONFIG] API_BASE será usado en todas las requests:', API_BASE)
 
   const WEBSITES: Record<string, WebsiteConfig> = {
     encuentra24: {
@@ -207,11 +212,15 @@ function App() {
 
   const loadHistoryFromBackend = async () => {
     try {
-      const response = await fetch(`${API_BASE}/v1/properties/?page_size=100&ordering=-created_at`)
+      const url = `${API_BASE}/v1/properties/?page_size=100&ordering=-created_at`
+      console.log('📥 [FETCH] Loading history from:', url)
+      const response = await fetch(url)
+      console.log('📥 [FETCH] Response status:', response.status, response.ok ? '✅' : '❌')
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       const data = await response.json()
+      console.log('📥 [FETCH] Data received:', data.results?.length || 0, 'properties')
       if (data.results) {
         setProperties(data.results)
       }
@@ -268,9 +277,11 @@ function App() {
 
     try {
       const endpoint = inputType === 'url' ? `${API_BASE}/v1/ingest/url/` : `${API_BASE}/v1/ingest/text/`
+      console.log('📤 [FETCH] Processing property to:', endpoint)
       const body = inputType === 'url' 
         ? { url, source_website: sourceWebsite } 
         : { text, source_website: sourceWebsite }
+      console.log('📤 [FETCH] Request body:', body)
 
       const response = await fetch(endpoint, {
         method: 'POST',

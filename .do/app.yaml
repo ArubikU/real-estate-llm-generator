@@ -100,7 +100,7 @@ static_sites:
   envs:
   - key: VITE_API_URL
     scope: BUILD_TIME
-    value: ${web.PUBLIC_URL}/api
+    value: ${web.PUBLIC_URL}
   github:
     branch: main
     deploy_on_push: true
