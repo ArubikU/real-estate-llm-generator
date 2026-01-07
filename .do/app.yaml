@@ -17,6 +17,11 @@ ingress:
       name: web
     match:
       path:
+        prefix: /v1
+  - component:
+      name: web
+    match:
+      path:
         prefix: /admin
   - component:
       name: web
