@@ -10,18 +10,16 @@ from core.utils.health import health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('health/', health_check, name='health_check'),
     
-    # Health check endpoint
-    path('api/health/', health_check, name='health_check'),
-    
-    # API v1 endpoints
-    path('api/v1/auth/', include('apps.users.urls')),
-    path('api/v1/tenants/', include('apps.tenants.urls')),
-    path('api/v1/properties/', include('apps.properties.urls')),
-    path('api/v1/documents/', include('apps.documents.urls')),
-    path('api/v1/conversations/', include('apps.conversations.urls')),
-    path('api/v1/chat/', include('apps.chat.urls')),
-    path('api/v1/ingest/', include('apps.ingestion.urls')),
+    # Sin /api/ prefix
+    path('v1/auth/', include('apps.users.urls')),
+    path('v1/tenants/', include('apps.tenants.urls')),
+    path('v1/properties/', include('apps.properties.urls')),
+    path('v1/documents/', include('apps.documents.urls')),
+    path('v1/conversations/', include('apps.conversations.urls')),
+    path('v1/chat/', include('apps.chat.urls')),
+    path('v1/ingest/', include('apps.ingestion.urls')),
 ]
 
 # Serve static and media files in development
