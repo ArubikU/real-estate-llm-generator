@@ -176,35 +176,46 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 CORS_ALLOW_CREDENTIALS = True
 
-# Redis Configuration
-REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
+# Redis Configuration (optional - fallback to dummy cache if not available)
+REDIS_URL = env('REDIS_URL', default=None)
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'CONNECTION_POOL_KWARGS': {
-                'max_connections': 50,
-                'retry_on_timeout': True,
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
             },
+            'KEY_PREFIX': 'real_estate_llm',
+            'TIMEOUT': 3600,  # 1 hour default
         },
-        'KEY_PREFIX': 'real_estate_llm',
-        'TIMEOUT': 3600,  # 1 hour default
-    },
-    'embeddings': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'DB': 1,
-        },
-        'KEY_PREFIX': 'embeddings',
-        'TIMEOUT': 86400 * 7,  # 7 days
+        'embeddings': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'DB': 1,
+            },
+            'KEY_PREFIX': 'embeddings',
+            'TIMEOUT': 86400 * 7,  # 7 days
+        }
     }
-}
+else:
+    # Use dummy cache (no caching) when Redis is not available
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'embeddings': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
 
 # Celery Configuration
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/1')
