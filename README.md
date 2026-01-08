@@ -2,6 +2,34 @@
 
 Complete Django-based Real Estate chatbot system with RAG (Retrieval Augmented Generation) for Kelly Phillipps' Costa Rica properties.
 
+## 📁 Project Structure
+
+```
+/
+├── backend/              # Django REST API
+│   ├── apps/            # Django applications
+│   ├── config/          # Settings & configuration
+│   └── core/            # Core utilities (LLM, scraping, RAG)
+├── frontend/            # React SPA with TypeScript
+│   ├── src/             # React components
+│   └── server.js        # Express server
+├── deployment/          # Docker & deployment configs
+│   ├── docker-compose.yml
+│   ├── docker-compose.production.yml
+│   └── nginx/
+├── tools/               # Utility scripts & actors
+│   ├── apify_actor/
+│   └── scripts/
+├── documentation/       # Docs, evaluation & architecture
+│   ├── docs/
+│   ├── evaluation/
+│   └── guardrails/
+├── testing/             # Test suites & responses
+│   └── tests/
+├── .do/                 # DigitalOcean App Platform config
+└── other/               # Static files & legacy code
+```
+
 ## 🎯 System Overview
 
 This system provides two main components:
@@ -24,23 +52,24 @@ This system provides two main components:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Frontend Layer                        │
-│  - Data Collector (HTML/JS)                             │
-│  - API Consumer (Future React/Next.js)                  │
+│  React SPA (Express server) + Chatbot UI                │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │                  Django REST API                         │
-│  /api/v1/ingest/  - Property ingestion                  │
-│  /api/v1/chat/    - RAG chatbot                         │
-│  /api/v1/properties/ - Property CRUD                    │
+│  /api/chat/         - RAG chatbot                       │
+│  /api/properties/   - Property CRUD                     │
+│  /api/conversations/- Chat history                      │
+│  /api/documents/    - Document storage                  │
+│  /api/ingest/       - Property ingestion                │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌───────────────┬──────────────────┬─────────────────────┐
 │  Core Modules │                  │                     │
 │               │                  │                     │
 │  Scraping     │   LLM Services   │   RAG Pipeline     │
-│  (Playwright) │   (OpenAI/       │   (LangChain)      │
-│               │    Anthropic)    │                     │
+│  (Playwright) │   (OpenAI)       │   (LangChain)      │
+│               │                  │                     │
 └───────────────┴──────────────────┴─────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -48,6 +77,7 @@ This system provides two main components:
 │  - PostgreSQL + pgvector (vectors & metadata)           │
 │  - Redis (caching & Celery broker)                      │
 └─────────────────────────────────────────────────────────┘
+```
 ```
 
 ## 📋 Prerequisites
@@ -67,7 +97,12 @@ This system provides two main components:
 ```bash
 cd real_estate_llm
 chmod +x scripts/setup.sh
-./scripts/setup.sh
+## 🚀 Quick Start
+
+### Option 1: Automated Setup (Recommended)
+
+```bash
+./tools/scripts/setup.sh
 ```
 
 This script will:
@@ -82,6 +117,7 @@ This script will:
 
 1. **Create virtual environment:**
 ```bash
+cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
@@ -94,23 +130,35 @@ playwright install chromium
 
 3. **Start Docker services:**
 ```bash
+cd ../deployment
 docker-compose up -d postgres redis
 ```
 
 4. **Configure environment:**
 ```bash
+cd ..
 cp .env.example .env
 # Edit .env with your API keys
 ```
 
 5. **Run migrations:**
 ```bash
+cd backend
 python manage.py migrate
 ```
 
 6. **Create superuser:**
 ```bash
 python manage.py createsuperuser
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev  # Development
+npm run build && npm start  # Production
 ```
 
 ## 🔑 Environment Configuration

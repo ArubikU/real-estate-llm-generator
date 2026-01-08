@@ -14,11 +14,9 @@ interface Property {
   has_embedding: boolean;
 }
 
-const API_URL = import.meta.env.VITE_API_URL 
+const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/properties/`
-  : 'http://localhost:8000/properties/';
-
-export default function PropertyList() {
+  : 'http://localhost:8000/api/properties/';export default function PropertyList() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

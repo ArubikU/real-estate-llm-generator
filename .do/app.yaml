@@ -12,32 +12,7 @@ ingress:
       name: web
     match:
       path:
-        prefix: /properties
-  - component:
-      name: web
-    match:
-      path:
-        prefix: /chat
-  - component:
-      name: web
-    match:
-      path:
-        prefix: /conversations
-  - component:
-      name: web
-    match:
-      path:
-        prefix: /documents
-  - component:
-      name: web
-    match:
-      path:
-        prefix: /ingest
-  - component:
-      name: web
-    match:
-      path:
-        prefix: /auth
+        prefix: /api
   - component:
       name: web
     match:
@@ -49,11 +24,6 @@ ingress:
       path:
         prefix: /static
   - component:
-      name: web
-    match:
-      path:
-        prefix: /health
-  - component:
       name: frontend
     match:
       path:
@@ -61,7 +31,8 @@ ingress:
 name: kp-realestate
 region: nyc
 services:
-- dockerfile_path: Dockerfile
+- dockerfile_path: backend/Dockerfile
+  source_dir: /backend
   envs:
   - key: DJANGO_SETTINGS_MODULE
     scope: RUN_AND_BUILD_TIME
@@ -119,17 +90,29 @@ services:
   instance_count: 1
   instance_size_slug: basic-xxs
   name: web
-static_sites:
 - build_command: npm ci && npm run build
-  environment_slug: node-js
   envs:
   - key: VITE_API_URL
     scope: BUILD_TIME
-    value: ${APP_URL}
+    value: ${APP_URL}/api
+  - key: PORT
+    scope: RUN_TIME
+    value: "8080"
+  environment_slug: node-js
   github:
     branch: main
     deploy_on_push: true
     repo: 1di210299/real-estate-llm-generator
+  health_check:
+    failure_threshold: 3
+    http_path: /health
+    initial_delay_seconds: 30
+    period_seconds: 30
+    success_threshold: 1
+    timeout_seconds: 5
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
   name: frontend
-  output_dir: dist
-  source_dir: /data-collector-frontend
+  run_command: npm start
+  source_dir: /frontend

@@ -1,3 +1,56 @@
+# Frontend - React SPA
+
+Frontend React con TypeScript, Vite y Express server para servir la aplicación.
+
+## Estructura
+
+```
+frontend/
+├── src/
+│   ├── components/    # Componentes React
+│   │   ├── Chatbot.tsx
+│   │   ├── PropertyList.tsx
+│   │   ├── Dashboard.tsx
+│   │   └── DataCollector.tsx
+│   ├── App.tsx       # Router principal
+│   └── main.tsx      # Entry point
+├── server.js         # Express server
+├── package.json      # Dependencies
+└── vite.config.ts    # Vite configuration
+```
+
+## Desarrollo local
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+El servidor de desarrollo estará en `http://localhost:5173`
+
+## Production
+
+El servidor Express sirve los archivos estáticos del build y maneja todas las rutas del SPA:
+
+```bash
+npm run build
+npm start
+```
+
+## Rutas disponibles
+
+- `/` - Dashboard
+- `/data-collector` - Recolector de datos
+- `/chatbot` - Chat con IA
+- `/properties` - Lista de propiedades
+
+## Variables de entorno
+
+- `VITE_API_URL` - URL del backend API (ej: `https://api.example.com/api`)
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

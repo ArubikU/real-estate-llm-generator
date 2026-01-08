@@ -44,7 +44,7 @@ services:
   # Django Web Application
   web:
     build:
-      context: .
+      context: ../backend
       dockerfile: Dockerfile.production
     command: >
       sh -c "
