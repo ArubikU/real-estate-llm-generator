@@ -21,9 +21,10 @@ class TenantMiddleware(MiddlewareMixin):
         print(f"🔍 TenantMiddleware - Method: {request.method}")
         print(f"🔍 TenantMiddleware - Headers: {dict(request.headers)}")
         
-        # Skip tenant check for admin, static, and all /api/ routes
+        # Skip tenant check for admin, static, health, and all /api/ routes
         if (request.path.startswith('/admin/') or 
             request.path.startswith('/api/') or
+            request.path.startswith('/health/') or
             request.path.startswith('/static/') or
             request.path.startswith('/media/')):
             print(f"✅ TenantMiddleware - SKIPPING tenant check for: {request.path}")
