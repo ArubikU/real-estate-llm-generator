@@ -606,9 +606,7 @@ class WebScraper:
                 render_js=True,
                 # Wait for page to load
                 rendering_wait=3000,
-                # Timeout
-                timeout=60000,
-                # Retry on failure
+                # Retry on failure (Note: timeout cannot be set when retry=True)
                 retry=True,
             )
             

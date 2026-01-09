@@ -129,6 +129,8 @@ scraper = WebScraper()
 # Debe mostrar: "🚀 Scrapfly enabled - Anti-bot bypass ready"
 ```
 
+**Nota:** Scrapfly usa `retry=True` por defecto, lo que significa que el timeout es manejado automáticamente por la API (155 segundos). No puedes configurar un timeout personalizado cuando retry está activo.
+
 ### Test 2: Scrapear encuentra24
 
 ```python
