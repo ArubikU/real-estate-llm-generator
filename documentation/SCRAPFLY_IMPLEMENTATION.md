@@ -4,7 +4,7 @@
 
 ### 1. **Dependencias** (`requirements.txt`)
 ```bash
-scrapfly-sdk==1.1.1
+scrapfly-sdk==0.8.24
 ```
 
 ### 2. **Configuración** (`config/settings/base.py`)
@@ -30,7 +30,7 @@ Ahora el scraper elige automáticamente el mejor método:
 
 ```bash
 cd backend
-pip install scrapfly-sdk==1.1.1
+pip install scrapfly-sdk==0.8.24
 ```
 
 O instala todas las dependencias:
