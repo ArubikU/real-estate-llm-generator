@@ -647,21 +647,21 @@ function App() {
                 {/* Property Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {[
-                    { label: 'Property Name', value: extractedProperty.property_name },
+                    { label: 'Property Name', value: extractedProperty.title || extractedProperty.property_name },
                     { label: 'Listing ID', value: extractedProperty.listing_id },
-                    { label: 'Listing Status', value: extractedProperty.listing_status },
+                    { label: 'Listing Status', value: extractedProperty.listing_status || extractedProperty.listing_type },
                     { label: 'Price (USD)', value: extractedProperty.price_usd ? `$${parseFloat(String(extractedProperty.price_usd)).toLocaleString()}` : 'N/A' },
                     { label: 'Type', value: extractedProperty.property_type_display || extractedProperty.property_type },
                     { 
                       label: 'Location', 
-                      value: extractedProperty.location,
+                      value: extractedProperty.location || extractedProperty.address || (extractedProperty.city && extractedProperty.province ? `${extractedProperty.city}, ${extractedProperty.province}` : null),
                       isLocation: true,
                       lat: extractedProperty.latitude,
                       lng: extractedProperty.longitude
                     },
                     { label: 'Bedrooms', value: extractedProperty.bedrooms },
                     { label: 'Bathrooms', value: extractedProperty.bathrooms },
-                    { label: 'Square Meters', value: extractedProperty.square_meters },
+                    { label: 'Square Meters', value: extractedProperty.area_m2 || extractedProperty.square_meters },
                     { label: 'Lot Size (m²)', value: extractedProperty.lot_size_m2 },
                     { label: 'Date Listed', value: extractedProperty.date_listed },
                     { label: 'Status', value: extractedProperty.status_display || extractedProperty.status },
