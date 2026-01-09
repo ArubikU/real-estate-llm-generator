@@ -91,7 +91,7 @@ const API_URL = import.meta.env.VITE_API_URL
             </div>
 
             <div className="property-price">
-              ${property.price_usd.toLocaleString()} USD
+              {property.price_usd ? `$${property.price_usd.toLocaleString()} USD` : 'Price not available'}
             </div>
 
             <div className="property-details">

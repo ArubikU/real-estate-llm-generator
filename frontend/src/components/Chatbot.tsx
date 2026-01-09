@@ -222,7 +222,7 @@ Puedes preguntar sobre:
                           {metadata.location && ` - ${metadata.location}`}
                           {metadata.price_usd && (
                             <span className="source-price">
-                              {' '}($${metadata.price_usd.toLocaleString()} USD)
+                              {metadata.price_usd ? ` ($${metadata.price_usd.toLocaleString()} USD)` : ''}
                             </span>
                           )}
                           <span className="source-relevance">
