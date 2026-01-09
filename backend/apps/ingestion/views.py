@@ -426,3 +426,102 @@ class SavePropertyView(APIView):
                 {'error': f'Failed to save property: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class GenerateEmbeddingsView(APIView):
+    """
+    Admin endpoint to generate embeddings for all properties without embeddings.
+    
+    POST /ingest/generate-embeddings
+    {
+        "force": false  // Optional: regenerate even if embeddings exist
+    }
+    """
+    
+    authentication_classes = []
+    permission_classes = [AllowAny]  # TODO: Add admin-only permission in production
+    
+    def post(self, request):
+        """Generate embeddings for properties."""
+        
+        logger.info("=== GenerateEmbeddingsView POST request received ===")
+        
+        force = request.data.get('force', False)
+        
+        try:
+            from apps.properties.models import Property
+            
+            # Get properties that need embeddings
+            if force:
+                properties = Property.objects.all()
+                message = f'Force mode: Processing ALL {properties.count()} properties'
+            else:
+                properties = Property.objects.filter(embedding__isnull=True)
+                message = f'Found {properties.count()} properties without embeddings'
+            
+            logger.info(message)
+            
+            if not properties.exists():
+                return Response({
+                    'status': 'success',
+                    'message': 'All properties already have embeddings!',
+                    'total_properties': Property.objects.count(),
+                    'with_embeddings': Property.objects.filter(embedding__isnull=False).count(),
+                    'processed': 0,
+                    'errors': 0
+                }, status=status.HTTP_200_OK)
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            for property_obj in properties:
+                try:
+                    logger.info(f"Generating embedding for: {property_obj.property_name}")
+                    
+                    embedding = generate_property_embedding(property_obj)
+                    
+                    if embedding:
+                        property_obj.embedding = embedding
+                        property_obj.save(update_fields=['embedding'])
+                        success_count += 1
+                        logger.info(f"✓ Embedding generated for: {property_obj.property_name}")
+                    else:
+                        error_count += 1
+                        error_msg = f"Failed to generate embedding for property: {property_obj.id}"
+                        errors.append(error_msg)
+                        logger.warning(error_msg)
+                        
+                except Exception as e:
+                    error_count += 1
+                    error_msg = f"Error processing property {property_obj.id}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg, exc_info=True)
+            
+            # Get final statistics
+            total_properties = Property.objects.count()
+            with_embeddings = Property.objects.filter(embedding__isnull=False).count()
+            coverage = (with_embeddings / total_properties * 100) if total_properties > 0 else 0
+            
+            logger.info(f"✅ Embedding generation complete!")
+            logger.info(f"   Success: {success_count}, Errors: {error_count}")
+            logger.info(f"   Coverage: {with_embeddings}/{total_properties} ({coverage:.1f}%)")
+            
+            return Response({
+                'status': 'success',
+                'message': 'Embedding generation complete',
+                'total_properties': total_properties,
+                'with_embeddings': with_embeddings,
+                'coverage_percent': round(coverage, 1),
+                'processed': success_count + error_count,
+                'success': success_count,
+                'errors': error_count,
+                'error_details': errors[:10] if errors else []  # Return first 10 errors
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error in GenerateEmbeddingsView: {e}", exc_info=True)
+            return Response(
+                {'error': f'Failed to generate embeddings: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
