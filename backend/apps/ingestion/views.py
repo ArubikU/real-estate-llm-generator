@@ -448,6 +448,42 @@ class SavePropertyView(APIView):
             for field in evidence_fields:
                 property_data.pop(field, None)
             
+            # Map extractor field names to Property model field names
+            field_mapping = {
+                'title': 'property_name',
+                'area_m2': 'square_meters',
+                'listing_type': 'status',  # for_sale -> available
+            }
+            
+            for old_name, new_name in field_mapping.items():
+                if old_name in property_data:
+                    property_data[new_name] = property_data.pop(old_name)
+            
+            # Convert listing_type values to status values
+            if 'status' in property_data:
+                status_mapping = {
+                    'for_sale': 'available',
+                    'for_rent': 'available',
+                    'sold': 'sold',
+                }
+                property_data['status'] = status_mapping.get(property_data['status'], 'available')
+            
+            # Build location from address/city/province if location is empty
+            if not property_data.get('location') and (property_data.get('city') or property_data.get('address')):
+                location_parts = []
+                if property_data.get('address'):
+                    location_parts.append(property_data['address'])
+                if property_data.get('city'):
+                    location_parts.append(property_data['city'])
+                if property_data.get('province'):
+                    location_parts.append(property_data['province'])
+                property_data['location'] = ', '.join(location_parts)
+            
+            # Remove fields that don't exist in Property model
+            fields_to_remove = ['address', 'city', 'province', 'country', 'agent_name', 'agent_phone', 'agent_email']
+            for field in fields_to_remove:
+                property_data.pop(field, None)
+            
             # Separate ManyToMany fields (must be set after object creation)
             images_data = property_data.pop('images', [])
             amenities_data = property_data.pop('amenities', [])
