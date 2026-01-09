@@ -341,9 +341,11 @@ class RAGPipeline:
         # 4. Get conversation history
         conversation_history = []
         if conversation:
-            conversation_history = list(
-                conversation.messages.order_by('created_at')[-settings.MAX_CONVERSATION_HISTORY:]
-            )
+            # Get last N messages (Django QuerySet doesn't support negative indexing)
+            all_messages = conversation.messages.order_by('created_at')
+            total_count = all_messages.count()
+            start_index = max(0, total_count - settings.MAX_CONVERSATION_HISTORY)
+            conversation_history = list(all_messages[start_index:])
         
         # 5. Build context
         context = self._build_context(retrieved_docs, conversation_history)
