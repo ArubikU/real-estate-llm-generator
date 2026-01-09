@@ -85,6 +85,8 @@ class Property(models.Model):
     property_name = models.CharField(
         _('Property Name'),
         max_length=200,
+        null=True,
+        blank=True,
         help_text=_('Name or title of the property')
     )
     
@@ -92,6 +94,8 @@ class Property(models.Model):
         _('Price (USD)'),
         max_digits=12,
         decimal_places=2,
+        null=True,
+        blank=True,
         help_text=_('Price in US dollars')
     )
     
@@ -115,6 +119,8 @@ class Property(models.Model):
         _('Property Type'),
         max_length=20,
         choices=PropertyType.CHOICES,
+        null=True,
+        blank=True,
         help_text=_('Type of property')
     )
     
@@ -130,6 +136,8 @@ class Property(models.Model):
     location = models.CharField(
         _('Location'),
         max_length=200,
+        null=True,
+        blank=True,
         help_text=_('City, region, or area')
     )
     
@@ -154,6 +162,8 @@ class Property(models.Model):
     # Detailed information
     description = models.TextField(
         _('Description'),
+        null=True,
+        blank=True,
         help_text=_('Full property description')
     )
     

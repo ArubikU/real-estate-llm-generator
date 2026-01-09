@@ -484,6 +484,15 @@ class SavePropertyView(APIView):
                     location_parts.append(property_data['province'])
                 property_data['location'] = ', '.join(location_parts)
             
+            # If location is still empty, use coordinates or default
+            if not property_data.get('location'):
+                if property_data.get('latitude') and property_data.get('longitude'):
+                    property_data['location'] = f"{property_data['latitude']}, {property_data['longitude']}"
+                    logger.info(f"⚠️ location was missing, using coordinates: {property_data['location']}")
+                else:
+                    property_data['location'] = 'Unknown Location'
+                    logger.info(f"⚠️ location was missing, defaulting to 'Unknown Location'")
+            
             # Remove fields that don't exist in Property model
             fields_to_remove = ['address', 'city', 'province', 'country', 'agent_name', 'agent_phone', 'agent_email']
             for field in fields_to_remove:
