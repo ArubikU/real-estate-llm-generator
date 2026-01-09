@@ -3,10 +3,12 @@ import Dashboard from './components/Dashboard';
 import DataCollector from './components/DataCollector';
 import Chatbot from './components/Chatbot';
 import PropertyList from './components/PropertyList';
+import Header from './components/Header';
 
 function App() {
   return (
     <BrowserRouter>
+      <Header />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/data-collector" element={<DataCollector />} />

@@ -88,19 +88,8 @@ def generate_property_embedding(property_obj) -> Optional[List[float]]:
             parts.append(f"Description: {property_obj.description}")
         
         # Location info
-        location_parts = []
-        if property_obj.city:
-            location_parts.append(property_obj.city)
-        if property_obj.province:
-            location_parts.append(property_obj.province)
-        if property_obj.country:
-            location_parts.append(property_obj.country)
-        
-        if location_parts:
-            parts.append(f"Location: {', '.join(location_parts)}")
-        
-        if property_obj.address:
-            parts.append(f"Address: {property_obj.address}")
+        if property_obj.location:
+            parts.append(f"Location: {property_obj.location}")
         
         # Property details
         if property_obj.property_type:

@@ -123,16 +123,18 @@ const API_URL = import.meta.env.VITE_API_URL
               )}
             </div>
 
-            <div className="property-description">
-              {property.description.substring(0, 150)}
-              {property.description.length > 150 && '...'}
-            </div>
+            {property.description && (
+              <div className="property-description">
+                {property.description.substring(0, 150)}
+                {property.description.length > 150 && '...'}
+              </div>
+            )}
 
             {property.has_embedding && (
               <div className="suggested-queries">
                 <div className="queries-title">💬 Preguntas sugeridas:</div>
                 <div className="query-chip">¿Cuánto cuesta {property.property_name}?</div>
-                <div className="query-chip">Dime más sobre la propiedad en {property.location}</div>
+                <div className="query-chip">Dime más sobre {property.location ? `la propiedad en ${property.location}` : 'esta propiedad'}</div>
               </div>
             )}
           </div>
