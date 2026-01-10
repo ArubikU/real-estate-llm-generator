@@ -102,6 +102,7 @@ class RAGPipeline:
         results = []
         
         # Search documents
+        logger.debug(f"🔍 Searching documents: tenant_id={self.tenant_id}, user_role={self.user_role}")
         documents = Document.objects.filter(
             tenant_id=self.tenant_id,
             is_active=True,
@@ -112,10 +113,30 @@ class RAGPipeline:
             similarity=1 - CosineDistance('embedding', query_embedding)
         ).order_by('-similarity')[:k]
         
+        logger.info(f"📄 Found {documents.count()} documents with embeddings")
         for doc in documents:
             results.append((doc, float(doc.similarity), 'document'))
         
         # Search properties
+        logger.debug(f"🔍 Searching properties: tenant_id={self.tenant_id}, user_role={self.user_role}")
+        
+        # First check total properties
+        total_properties = Property.objects.filter(tenant_id=self.tenant_id).count()
+        logger.info(f"🏠 Total properties for tenant: {total_properties}")
+        
+        properties_with_roles = Property.objects.filter(
+            tenant_id=self.tenant_id,
+            user_roles__contains=[self.user_role]
+        ).count()
+        logger.info(f"🏠 Properties with user_role '{self.user_role}': {properties_with_roles}")
+        
+        properties_with_embeddings = Property.objects.filter(
+            tenant_id=self.tenant_id,
+            user_roles__contains=[self.user_role],
+            embedding__isnull=False
+        ).count()
+        logger.info(f"🏠 Properties with embeddings: {properties_with_embeddings}")
+        
         properties = Property.objects.filter(
             tenant_id=self.tenant_id,
             user_roles__contains=[self.user_role]
@@ -125,7 +146,9 @@ class RAGPipeline:
             similarity=1 - CosineDistance('embedding', query_embedding)
         ).order_by('-similarity')[:k]
         
+        logger.info(f"🏠 Retrieved {properties.count()} properties for comparison")
         for prop in properties:
+            logger.debug(f"  - Property: {prop.property_name}, similarity: {prop.similarity}")
             results.append((prop, float(prop.similarity), 'property'))
         
         # Sort all results by similarity and take top k
