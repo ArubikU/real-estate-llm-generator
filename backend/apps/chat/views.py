@@ -64,7 +64,7 @@ class ChatView(APIView):
                 
                 tenant = Tenant.objects.first()
                 user = CustomUser.objects.filter(tenant=tenant).first()
-                user_role = 'client' if user else 'client'
+                user_role = 'buyer'  # Changed from 'client' to match property user_roles
                 
                 if not tenant:
                     return Response(
