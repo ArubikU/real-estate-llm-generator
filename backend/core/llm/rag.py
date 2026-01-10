@@ -493,6 +493,15 @@ class RAGPipeline:
         user_message = f"{context}\n\n=== USER QUESTION ===\n{query}"
         messages.append(HumanMessage(content=user_message))
         
+        # Log the full context being sent to LLM
+        logger.info("=" * 80)
+        logger.info("📤 CONTEXT SENT TO LLM:")
+        logger.info(f"Context length: {len(context)} characters")
+        logger.info(context[:2000])  # First 2000 chars
+        if len(context) > 2000:
+            logger.info(f"... (truncated, total {len(context)} chars)")
+        logger.info("=" * 80)
+        
         # 8. Generate response
         try:
             response = llm.invoke(messages)
