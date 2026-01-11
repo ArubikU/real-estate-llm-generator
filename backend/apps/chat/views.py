@@ -3,11 +3,13 @@ Views for Chat API with RAG.
 """
 
 import logging
+import json
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from django.http import StreamingHttpResponse
 
 from core.llm.rag import RAGPipeline, RAGError
 from apps.conversations.models import Conversation, Message
@@ -43,7 +45,7 @@ class ChatView(APIView):
         
         message_text = request.data.get('message')
         conversation_id = request.data.get('conversation_id')
-        stream = request.data.get('stream', False)
+        stream = request.data.get('stream', True)  # Default to streaming
         
         if not message_text:
             return Response(
@@ -51,77 +53,91 @@ class ChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        try:
-            # For testing without auth, use first available tenant/user
-            if request.user and request.user.is_authenticated:
-                user = request.user
-                tenant = request.user.tenant
-                user_role = request.user.role
-                logger.info(f"✅ Authenticated user: {user.username}, tenant: {tenant}")
-            else:
-                # Anonymous access for testing
-                from apps.tenants.models import Tenant
-                from apps.users.models import CustomUser
+        # If streaming is requested, return SSE response
+        if stream:
+            return self._stream_response(request, message_text, conversation_id)
+        
+        # Otherwise, return regular response
+        return self._regular_response(request, message_text, conversation_id)
+    
+    def _stream_response(self, request, message_text, conversation_id):
+        """Stream response using Server-Sent Events."""
+        
+        def event_stream():
+            try:
+                # Setup user and tenant
+                tenant, user, user_role = self._get_user_context(request)
                 
-                logger.info("🔍 Anonymous user - looking for tenant...")
-                tenant = Tenant.objects.first()
-                logger.info(f"🔍 Found tenant: {tenant}")
-                
-                if not tenant:
-                    logger.error("❌ No tenant found in database")
-                    return Response(
-                        {'error': 'No tenant configured. Please run migrations and create test data.'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-                
-                # Try to get a user for this tenant, or create one if needed
-                logger.info(f"🔍 Looking for user with tenant_id: {tenant.id}")
-                user = CustomUser.objects.filter(tenant=tenant).first()
-                logger.info(f"🔍 Found user: {user}")
-                
-                if not user:
-                    # Create a default user for testing
-                    logger.info(f"🔨 Creating test user for tenant: {tenant.slug}")
-                    user = CustomUser.objects.create(
-                        username=f'test_user_{tenant.slug}',
-                        email=f'test@{tenant.slug}.com',
-                        tenant=tenant,
-                        role='buyer',
-                        is_active=True
-                    )
-                    logger.info(f"✅ Created test user: {user.username}")
-                
-                user_role = 'buyer'  # Changed from 'client' to match property user_roles
-                logger.info(f"✅ Using anonymous mode - user: {user.username if user else None}, role: {user_role}")
-                
-            # Get or create conversation
-            if conversation_id:
-                logger.info(f"🔍 Looking for existing conversation: {conversation_id}")
-                try:
-                    conversation = Conversation.objects.get(
-                        id=conversation_id,
-                        tenant=tenant
-                    )
-                    logger.info(f"✅ Found conversation: {conversation.id}")
-                except Conversation.DoesNotExist:
-                    logger.error(f"❌ Conversation not found: {conversation_id}")
-                    return Response(
-                        {'error': 'Conversation not found'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-            else:
-                # Create new conversation
-                # Generate title from first message
-                title = message_text[:100] + ('...' if len(message_text) > 100 else '')
-                
-                logger.info(f"🔨 Creating new conversation with title: {title}")
-                conversation = Conversation.objects.create(
-                    tenant=tenant,
-                    user=user if user else None,
-                    user_role=user_role,
-                    title=title
+                # Get or create conversation
+                conversation = self._get_or_create_conversation(
+                    tenant, user, user_role, conversation_id, message_text
                 )
-                logger.info(f"✅ Created new conversation: {conversation.id}")
+                
+                # Save user message
+                user_message = Message.objects.create(
+                    conversation=conversation,
+                    role=Message.Role.USER,
+                    content=message_text
+                )
+                
+                # Send conversation ID first
+                yield f"data: {json.dumps({'type': 'conversation_id', 'conversation_id': str(conversation.id)})}\n\n"
+                
+                # Initialize RAG
+                rag = RAGPipeline(
+                    tenant_id=str(tenant.id),
+                    user_role=user_role
+                )
+                
+                # Stream response
+                full_response = ""
+                for chunk in rag.query_stream(message_text, conversation):
+                    if chunk.get('type') == 'content':
+                        content = chunk.get('content', '')
+                        full_response += content
+                        yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
+                    elif chunk.get('type') == 'sources':
+                        sources = chunk.get('sources', [])
+                        yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+                
+                # Save assistant message
+                assistant_message = Message.objects.create(
+                    conversation=conversation,
+                    role=Message.Role.ASSISTANT,
+                    content=full_response,
+                    model_used='gpt-4',
+                    tokens_input=0,
+                    tokens_output=0
+                )
+                
+                # Send completion
+                yield f"data: {json.dumps({'type': 'done', 'message_id': str(assistant_message.id)})}\n\n"
+                
+            except Exception as e:
+                logger.error(f"❌ Streaming error: {e}", exc_info=True)
+                yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+        
+        response = StreamingHttpResponse(
+            event_stream(),
+            content_type='text/event-stream'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+    
+    def _regular_response(self, request, message_text, conversation_id):
+        """Regular non-streaming response."""
+    def _regular_response(self, request, message_text, conversation_id):
+        """Regular non-streaming response."""
+        
+        try:
+            # Setup user and tenant
+            tenant, user, user_role = self._get_user_context(request)
+            
+            # Get or create conversation
+            conversation = self._get_or_create_conversation(
+                tenant, user, user_role, conversation_id, message_text
+            )
             
             # Save user message
             user_message = Message.objects.create(
@@ -201,6 +217,73 @@ class ChatView(APIView):
                 {'error': f'An unexpected error occurred: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def _get_user_context(self, request):
+        """Get user, tenant, and role context."""
+        if request.user and request.user.is_authenticated:
+            user = request.user
+            tenant = request.user.tenant
+            user_role = request.user.role
+            logger.info(f"✅ Authenticated user: {user.username}, tenant: {tenant}")
+        else:
+            # Anonymous access for testing
+            from apps.tenants.models import Tenant
+            from apps.users.models import CustomUser
+            
+            logger.info("🔍 Anonymous user - looking for tenant...")
+            tenant = Tenant.objects.first()
+            logger.info(f"🔍 Found tenant: {tenant}")
+            
+            if not tenant:
+                logger.error("❌ No tenant found in database")
+                raise Exception('No tenant configured')
+            
+            logger.info(f"🔍 Looking for user with tenant_id: {tenant.id}")
+            user = CustomUser.objects.filter(tenant=tenant).first()
+            logger.info(f"🔍 Found user: {user}")
+            
+            if not user:
+                logger.info(f"🔨 Creating test user for tenant: {tenant.slug}")
+                user = CustomUser.objects.create(
+                    username=f'test_user_{tenant.slug}',
+                    email=f'test@{tenant.slug}.com',
+                    tenant=tenant,
+                    role='buyer',
+                    is_active=True
+                )
+                logger.info(f"✅ Created test user: {user.username}")
+            
+            user_role = 'buyer'
+            logger.info(f"✅ Using anonymous mode - user: {user.username if user else None}, role: {user_role}")
+        
+        return tenant, user, user_role
+    
+    def _get_or_create_conversation(self, tenant, user, user_role, conversation_id, message_text):
+        """Get existing or create new conversation."""
+        if conversation_id:
+            logger.info(f"🔍 Looking for existing conversation: {conversation_id}")
+            try:
+                conversation = Conversation.objects.get(
+                    id=conversation_id,
+                    tenant=tenant
+                )
+                logger.info(f"✅ Found conversation: {conversation.id}")
+                return conversation
+            except Conversation.DoesNotExist:
+                logger.error(f"❌ Conversation not found: {conversation_id}")
+                raise Exception('Conversation not found')
+        else:
+            # Create new conversation
+            title = message_text[:100] + ('...' if len(message_text) > 100 else '')
+            logger.info(f"🔨 Creating new conversation with title: {title}")
+            conversation = Conversation.objects.create(
+                tenant=tenant,
+                user=user if user else None,
+                user_role=user_role,
+                title=title
+            )
+            logger.info(f"✅ Created new conversation: {conversation.id}")
+            return conversation
 
 
 class ConversationListView(APIView):
@@ -301,15 +384,115 @@ class ConversationDetailView(APIView):
                 tenant=request.user.tenant
             )
             conversation.is_archived = True
-            conversation.save(update_fields=['is_archived'])
+            
+        except Conversation.DoesNotExist:
+            return Response(
+                {'error': 'Conversation not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ConversationListView(APIView):
+    """
+    Get list of user's conversations.
+    
+    GET /chat/conversations
+    """
+    permission_classes = []
+    
+    def get(self, request):
+        """Get all conversations for current user/tenant."""
+        try:
+            tenant, user, user_role = self._get_user_context(request)
+            
+            # Get conversations
+            conversations = Conversation.objects.filter(
+                tenant=tenant,
+                is_archived=False
+            ).order_by('-updated_at')[:50]  # Last 50 conversations
+            
+            result = []
+            for conv in conversations:
+                # Get first message as title preview
+                first_msg = conv.messages.filter(role=Message.Role.USER).first()
+                title = first_msg.content[:50] + "..." if first_msg and len(first_msg.content) > 50 else (first_msg.content if first_msg else "New conversation")
+                
+                result.append({
+                    'id': str(conv.id),
+                    'title': title,
+                    'created_at': conv.created_at.isoformat(),
+                    'updated_at': conv.updated_at.isoformat(),
+                    'message_count': conv.messages.count()
+                })
             
             return Response({
-                'status': 'success',
-                'message': 'Conversation archived'
+                'conversations': result
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error getting conversations: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _get_user_context(self, request):
+        """Get tenant and user from request."""
+        from apps.tenants.models import Tenant
+        from apps.users.models import CustomUser
+        
+        tenant = Tenant.objects.first()
+        user = None
+        user_role = 'buyer'
+        
+        if request.user and request.user.is_authenticated:
+            user = request.user
+            tenant = user.tenant
+            user_role = user.role
+        
+        return tenant, user, user_role
+
+
+class ConversationDetailView(APIView):
+    """
+    Get messages for a specific conversation.
+    
+    GET /chat/conversations/{id}
+    """
+    permission_classes = []
+    
+    def get(self, request, conversation_id):
+        """Get all messages for a conversation."""
+        try:
+            # Get conversation
+            conversation = Conversation.objects.get(id=conversation_id)
+            
+            # Get messages
+            messages = conversation.messages.order_by('created_at')
+            
+            result = []
+            for msg in messages:
+                result.append({
+                    'id': str(msg.id),
+                    'role': msg.role,
+                    'content': msg.content,
+                    'sources': msg.retrieved_documents if msg.retrieved_documents else [],
+                    'created_at': msg.created_at.isoformat()
+                })
+            
+            return Response({
+                'conversation_id': str(conversation.id),
+                'messages': result
             }, status=status.HTTP_200_OK)
             
         except Conversation.DoesNotExist:
             return Response(
                 {'error': 'Conversation not found'},
                 status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error getting conversation: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

@@ -527,6 +527,86 @@ class RAGPipeline:
         except Exception as e:
             logger.error(f"LLM generation error: {e}")
             raise RAGError(f"Failed to generate response: {str(e)}")
+    
+    def query_stream(self, query: str, conversation: Optional[Conversation] = None):
+        """
+        Stream RAG query response using generator.
+        
+        Args:
+            query: User question
+            conversation: Optional conversation for history
+            
+        Yields:
+            Dictionary chunks with type and content
+        """
+        import time
+        start_time = time.time()
+        
+        logger.info(f"RAG streaming query from {self.user_role}: {query[:100]}...")
+        
+        try:
+            # 1. Generate query embedding
+            query_embedding = self._get_query_embedding(query)
+            
+            # 2. Retrieve relevant documents
+            retrieved_docs = self._hybrid_search(query, query_embedding)
+            
+            # 3. Send sources first
+            yield {
+                'type': 'sources',
+                'sources': retrieved_docs[:5]  # Top 5 sources
+            }
+            
+            # 4. Get conversation history
+            conversation_history = []
+            if conversation:
+                all_messages = conversation.messages.order_by('created_at')
+                total_count = all_messages.count()
+                start_index = max(0, total_count - settings.MAX_CONVERSATION_HISTORY)
+                conversation_history = list(all_messages[start_index:])
+            
+            # 5. Build context
+            context = self._build_context(retrieved_docs, conversation_history)
+            
+            # 6. Choose LLM
+            use_complex = self._should_use_complex_model(query)
+            llm = self.complex_llm if use_complex else self.simple_llm
+            
+            # 7. Build messages
+            system_prompt = get_system_prompt(self.user_role)
+            
+            messages = [
+                SystemMessage(content=system_prompt),
+            ]
+            
+            # Add conversation history
+            for msg in conversation_history:
+                if msg.role == 'user':
+                    messages.append(HumanMessage(content=msg.content))
+                elif msg.role == 'assistant':
+                    messages.append(AIMessage(content=msg.content))
+            
+            # Add current query with context
+            user_message = f"{context}\n\n=== USER QUESTION ===\n{query}"
+            messages.append(HumanMessage(content=user_message))
+            
+            # 8. Stream response
+            for chunk in llm.stream(messages):
+                if hasattr(chunk, 'content') and chunk.content:
+                    yield {
+                        'type': 'content',
+                        'content': chunk.content
+                    }
+            
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"Streaming completed in {latency_ms}ms")
+            
+        except Exception as e:
+            logger.error(f"LLM streaming error: {e}")
+            yield {
+                'type': 'error',
+                'error': str(e)
+            }
 
 
 from django.utils import timezone

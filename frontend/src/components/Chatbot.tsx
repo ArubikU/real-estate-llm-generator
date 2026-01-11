@@ -124,8 +124,9 @@ You can ask about:
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<Array<{id: string; title: string; timestamp: Date}>>([]);
+  const [conversations, setConversations] = useState<Array<{id: string; title: string; timestamp: Date; message_count: number}>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isProcessingRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -135,9 +136,169 @@ You can ask about:
     scrollToBottom();
   }, [messages]);
 
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  const loadConversations = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/chat/conversations/`);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedConversations = data.conversations.map((conv: any) => ({
+          id: conv.id,
+          title: conv.title,
+          timestamp: new Date(conv.updated_at),
+          message_count: conv.message_count
+        }));
+        setConversations(formattedConversations);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  const loadConversation = async (convId: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/chat/conversations/${convId}/`);
+      if (response.ok) {
+        const data = await response.json();
+        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          sources: msg.sources,
+          timestamp: new Date(msg.created_at)
+        }));
+        
+        // Add welcome message at the beginning if not present
+        const welcomeMessage: Message = {
+          id: 'welcome',
+          role: 'assistant',
+          content: `Hello! I'm your Kelly Properties assistant. I can help you find the perfect property in Costa Rica. What are you looking for?
+
+You can ask about:
+• Properties by location (Tamarindo, Manuel Antonio, etc.)
+• Specific filters (price, bedrooms, amenities)
+• Information about a particular property`,
+          timestamp: new Date(data.messages[0]?.created_at || new Date()),
+        };
+        
+        setMessages([welcomeMessage, ...loadedMessages]);
+        setConversationId(convId);
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  // Format message content with proper HTML
+  const formatMessageContent = (content: string) => {
+    if (!content) return '';
+    
+    // Split by double newlines first (paragraphs)
+    const paragraphs = content.split('\n\n');
+    
+    return paragraphs.map((para, idx) => {
+      const trimmed = para.trim();
+      
+      // Check if it's a heading (### or ##)
+      if (trimmed.startsWith('###')) {
+        const text = trimmed.replace(/^###\s*/, '');
+        const formatted = formatInlineElements(text);
+        return <h3 key={idx}>{formatted}</h3>;
+      }
+      if (trimmed.startsWith('##')) {
+        const text = trimmed.replace(/^##\s*/, '');
+        const formatted = formatInlineElements(text);
+        return <h2 key={idx}>{formatted}</h2>;
+      }
+      if (trimmed.startsWith('#')) {
+        const text = trimmed.replace(/^#\s*/, '');
+        const formatted = formatInlineElements(text);
+        return <h2 key={idx}>{formatted}</h2>;
+      }
+      
+      // Check if it's a list
+      const lines = para.split('\n');
+      const isListItem = lines.every(line => 
+        line.trim().startsWith('•') || 
+        line.trim().startsWith('-') || 
+        line.trim().startsWith('*') ||
+        /^\d+\./.test(line.trim())
+      );
+      
+      if (isListItem) {
+        const items = lines
+          .filter(line => line.trim())
+          .map(line => {
+            const cleaned = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+            return formatInlineElements(cleaned);
+          });
+        
+        return (
+          <ul key={idx}>
+            {items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        );
+      }
+      
+      // Regular paragraph with inline formatting
+      const formatted = formatInlineElements(trimmed);
+      return <p key={idx}>{formatted}</p>;
+    });
+  };
+
+  // Helper to format inline elements like **bold**, `code`, etc.
+  const formatInlineElements = (text: string) => {
+    const parts: (string | JSX.Element)[] = [];
+    let currentIndex = 0;
+    
+    // Regex to match **bold**, `code`, or plain text
+    const regex = /(\*\*.*?\*\*|`[^`]+`)/g;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before match
+      if (match.index > currentIndex) {
+        parts.push(text.substring(currentIndex, match.index));
+      }
+      
+      const matched = match[0];
+      if (matched.startsWith('**') && matched.endsWith('**')) {
+        // Bold text
+        parts.push(<strong key={match.index}>{matched.slice(2, -2)}</strong>);
+      } else if (matched.startsWith('`') && matched.endsWith('`')) {
+        // Code text
+        parts.push(<code key={match.index}>{matched.slice(1, -1)}</code>);
+      }
+      
+      currentIndex = match.index + matched.length;
+    }
+    
+    // Add remaining text
+    if (currentIndex < text.length) {
+      parts.push(text.substring(currentIndex));
+    }
+    
+    return parts.length > 0 ? parts : text;
+  };
+
   const handleSendMessage = async (messageText?: string) => {
     const text = messageText || inputValue.trim();
     if (!text || isLoading) return;
+
+    // Prevent double execution
+    if (isProcessingRef.current) {
+      console.log('⚠️ Already processing, skipping duplicate call');
+      return;
+    }
+
+    isProcessingRef.current = true;
+    console.log('🚀 handleSendMessage called - PROCESSING');
 
     // Add user message
     const userMessage: Message = {
@@ -152,7 +313,16 @@ You can ask about:
     setIsLoading(true);
 
     console.log('📤 Sending message to:', API_URL);
-    console.log('📤 Message payload:', { message: text, conversation_id: conversationId });
+
+    // Create placeholder for assistant message
+    const assistantMessageId = `assistant-${Date.now()}`;
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
 
     try {
       const response = await fetch(API_URL, {
@@ -163,11 +333,12 @@ You can ask about:
         body: JSON.stringify({
           message: text,
           conversation_id: conversationId,
+          stream: true,
         }),
       });
 
       console.log('📥 Response status:', response.status);
-      console.log('📥 Response ok:', response.ok);
+      console.log('📥 Response type:', response.headers.get('content-type'));
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -175,37 +346,103 @@ You can ask about:
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: ApiResponse = await response.json();
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
+      let currentConversationId = conversationId;
+      let sources: Source[] | undefined;
 
-      // Save conversation ID
-      if (data.conversation_id && !conversationId) {
-        setConversationId(data.conversation_id);
+      if (!reader) {
+        throw new Error('No reader available');
       }
 
-      // Add assistant message
-      const assistantMessage: Message = {
-        id: data.message_id,
-        role: 'assistant',
-        content: data.response,
-        sources: data.sources,
-        timestamp: new Date(),
-      };
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ Stream complete');
+          break;
+        }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+        // Decode the chunk
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'conversation_id') {
+                currentConversationId = parsed.conversation_id;
+                if (!conversationId) {
+                  setConversationId(currentConversationId);
+                }
+              } else if (parsed.type === 'content') {
+                accumulatedContent += parsed.content;
+                // Update message with accumulated content
+                setMessages((prev) => 
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  )
+                );
+              } else if (parsed.type === 'sources') {
+                sources = parsed.sources;
+              } else if (parsed.type === 'done') {
+                console.log('✅ STREAMING DONE - Final message:', {
+                  totalLength: accumulatedContent.length,
+                  hasNewlines: accumulatedContent.includes('\n'),
+                  hasDoubleNewlines: accumulatedContent.includes('\n\n'),
+                  preview: accumulatedContent.substring(0, 150)
+                });
+                // Final update with all data
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, id: parsed.message_id, sources }
+                      : msg
+                  )
+                );
+                // Reload conversations list to show new conversation
+                loadConversations();
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
+              }
+            } catch (e) {
+              // Ignore JSON parse errors for incomplete chunks
+              if (e instanceof SyntaxError) {
+                continue;
+              }
+              throw e;
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error:', error);
       
-      // Add error message
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `Sorry, there was an error processing your request.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, errorMessage]);
+      // Update the assistant message with error
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: `Sorry, there was an error processing your request.\n\nError: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`,
+              }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
+      isProcessingRef.current = false;
+      console.log('✅ Processing complete, ready for next message');
     }
   };
 
@@ -252,8 +489,13 @@ You can ask about:
       <div className="chatbot-sidebar">
         <div className="sidebar-header">
           <h2>Conversations</h2>
-          <button className="new-conversation-btn" onClick={handleNewConversation} title="New conversation">
+          <button 
+            className="new-conversation-btn" 
+            onClick={handleNewConversation} 
+            title="New conversation"
+          >
             <Icons.plus />
+            <span>New Chat</span>
           </button>
         </div>
         <div className="conversations-list">
@@ -264,12 +506,17 @@ You can ask about:
             </div>
           ) : (
             conversations.map((conv) => (
-              <div key={conv.id} className="conversation-item">
+              <div 
+                key={conv.id} 
+                className={`conversation-item ${conversationId === conv.id ? 'active' : ''}`}
+                onClick={() => loadConversation(conv.id)}
+                style={{ cursor: 'pointer' }}
+              >
                 <Icons.message />
                 <div className="conversation-info">
                   <div className="conversation-title">{conv.title}</div>
                   <div className="conversation-date">
-                    {conv.timestamp.toLocaleDateString()}
+                    {conv.timestamp.toLocaleDateString()} • {conv.message_count} messages
                   </div>
                 </div>
               </div>
@@ -280,31 +527,6 @@ You can ask about:
 
       {/* Main Chat Area */}
       <div className="chatbot-wrapper">
-        {/* Header */}
-        <div className="chatbot-header">
-          <div className="header-content">
-            <p>Your intelligent assistant for properties in Costa Rica</p>
-          </div>
-          
-          {/* Example queries */}
-          <div className="example-queries">
-            {EXAMPLE_QUERIES.map((query, idx) => {
-              const IconComponent = Icons[query.icon as keyof typeof Icons];
-              return (
-                <button
-                  key={idx}
-                  className="example-query-btn"
-                  onClick={() => handleExampleQuery(query.text)}
-                  disabled={isLoading}
-                >
-                  <span className="query-icon">{IconComponent && <IconComponent />}</span>
-                  <span className="query-label">{query.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Messages */}
         <div className="chatbot-messages">
           {messages.map((message) => (
@@ -314,12 +536,11 @@ You can ask about:
               </div>
               <div className="message-content">
                 <div className="message-text">
-                  {message.content.split('\n').map((line, idx) => (
-                    <span key={idx}>
-                      {line}
-                      {idx < message.content.split('\n').length - 1 && <br />}
-                    </span>
-                  ))}
+                  {formatMessageContent(message.content)}
+                  {/* Show cursor when streaming and this is the last message */}
+                  {isLoading && message.role === 'assistant' && messages[messages.length - 1].id === message.id && (
+                    <span className="streaming-cursor"></span>
+                  )}
                 </div>
 
                 {/* Sources */}
@@ -373,22 +594,43 @@ You can ask about:
 
         {/* Input */}
         <div className="chatbot-input-container">
-          <input
-            type="text"
-            className="chatbot-input"
-            placeholder="Type your question here..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isLoading}
-          />
-          <button
-            className="send-button"
-            onClick={() => handleSendMessage()}
-            disabled={isLoading || !inputValue.trim()}
-          >
-            {isLoading ? '...' : <Icons.send />}
-          </button>
+          {/* Example queries */}
+          <div className="example-queries-bottom">
+            {EXAMPLE_QUERIES.map((query, idx) => {
+              const IconComponent = Icons[query.icon as keyof typeof Icons];
+              return (
+                <button
+                  key={idx}
+                  className="example-query-btn-small"
+                  onClick={() => handleExampleQuery(query.text)}
+                  disabled={isLoading}
+                  title={query.text}
+                >
+                  {IconComponent && <IconComponent />}
+                  <span>{query.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="input-row">
+            <input
+              type="text"
+              className="chatbot-input"
+              placeholder="Type your question here..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={isLoading}
+            />
+            <button
+              className="send-button"
+              onClick={() => handleSendMessage()}
+              disabled={isLoading || !inputValue.trim()}
+            >
+              {isLoading ? '...' : <Icons.send />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
