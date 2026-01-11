@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Chatbot.css';
 
 interface Message {
@@ -21,16 +21,6 @@ interface Source {
     bedrooms?: number;
     bathrooms?: number;
   };
-}
-
-interface ApiResponse {
-  conversation_id: string;
-  message_id: string;
-  response: string;
-  sources: Source[];
-  model?: string;
-  latency_ms?: number;
-  cached?: boolean;
 }
 
 const API_URL = import.meta.env.VITE_API_URL 
@@ -465,7 +455,8 @@ You can ask about:
       setConversations(prev => [{
         id: conversationId,
         title: messages[1]?.content.substring(0, 50) || 'New Conversation',
-        timestamp: new Date()
+        timestamp: new Date(),
+        message_count: messages.length - 1
       }, ...prev]);
     }
     // Reset to new conversation
