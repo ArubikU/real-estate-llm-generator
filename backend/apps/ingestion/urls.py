@@ -5,11 +5,13 @@ from .views import (
     IngestBatchView, 
     SavePropertyView, 
     GenerateEmbeddingsView,
-    SupportedWebsitesView
+    SupportedWebsitesView,
+    IngestionStatsView
 )
 
 urlpatterns = [
     path('supported-websites/', SupportedWebsitesView.as_view(), name='supported-websites'),
+    path('stats/', IngestionStatsView.as_view(), name='ingestion-stats'),
     path('url/', IngestURLView.as_view(), name='ingest-url'),
     path('text/', IngestTextView.as_view(), name='ingest-text'),
     path('batch/', IngestBatchView.as_view(), name='ingest-batch'),

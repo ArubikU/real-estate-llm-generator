@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 import './Dashboard.css';
 
 const Icons = {
@@ -32,41 +33,41 @@ const Icons = {
     </svg>
   ),
 };
-
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <div className="dashboard-container">
       <div className="dashboard-content">
-        <h1 className="dashboard-title">{Icons.home && <Icons.home />} KP Real Estate Platform</h1>
-        <p className="dashboard-subtitle">Comprehensive AI-powered real estate management system</p>
+        <h1 className="dashboard-title">{Icons.home && <Icons.home />} {t.dashboard.title}</h1>
+        <p className="dashboard-subtitle">{t.dashboard.subtitle}</p>
         
         <div className="dashboard-cards">
           <div className="dashboard-card" onClick={() => navigate('/data-collector')}>
             <div className="card-icon"><Icons.chart /></div>
-            <h2>Data Collector</h2>
-            <p>Property collection and management</p>
-            <button className="card-button">Access →</button>
+            <h2>{t.dashboard.dataCollector}</h2>
+            <p>{t.dashboard.dataCollectorDesc}</p>
+            <button className="card-button">{t.dashboard.access} →</button>
           </div>
           
           <div className="dashboard-card" onClick={() => navigate('/properties')}>
             <div className="card-icon"><Icons.building /></div>
-            <h2>Properties</h2>
-            <p>View indexed properties</p>
-            <button className="card-button">Access →</button>
+            <h2>{t.dashboard.properties}</h2>
+            <p>{t.dashboard.propertiesDesc}</p>
+            <button className="card-button">{t.dashboard.access} →</button>
           </div>
           
           <div className="dashboard-card" onClick={() => navigate('/chatbot')}>
             <div className="card-icon"><Icons.chat /></div>
-            <h2>AI Chatbot</h2>
-            <p>Virtual real estate assistant</p>
-            <button className="card-button">Access →</button>
+            <h2>{t.dashboard.chatbot}</h2>
+            <p>{t.dashboard.chatbotDesc}</p>
+            <button className="card-button">{t.dashboard.access} →</button>
           </div>
         </div>
         
         <div className="dashboard-footer">
-          <p>Backend API: <span className="status-indicator"><Icons.check /></span> Connected</p>
+          <p>{t.dashboard.backendStatus}: <span className="status-indicator"><Icons.check /></span> {t.dashboard.connected}</p>
         </div>
       </div>
     </div>

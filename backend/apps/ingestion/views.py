@@ -4,6 +4,11 @@ Handles URL scraping and text-based property extraction.
 """
 
 import logging
+import uuid
+import threading
+from decimal import Decimal
+from datetime import datetime, date, timedelta
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -19,8 +24,24 @@ from core.utils.website_detector import detect_source_website
 from apps.properties.models import Property, PropertyImage
 from apps.properties.serializers import PropertyDetailSerializer
 from .serializers import SupportedWebsiteSerializer
+from .progress import ProgressTracker
 
 logger = logging.getLogger(__name__)
+
+
+def serialize_for_json(obj):
+    """Convert non-JSON-serializable objects to JSON-serializable types."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [serialize_for_json(item) for item in obj]
+    return obj
 
 
 class SupportedWebsitesView(APIView):
@@ -82,37 +103,225 @@ class SupportedWebsitesView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class IngestionStatsView(APIView):
+    """
+    Endpoint to get ingestion statistics.
+    
+    GET /ingest/stats/
+    Returns: {
+        "properties_today": 15,
+        "properties_this_week": 42,
+        "properties_this_month": 156,
+        "recent_properties": [
+            {
+                "id": "uuid",
+                "title": "Casa en...",
+                "location": "San José",
+                "price_usd": 250000,
+                "created_at": "2026-01-12T15:30:00Z"
+            },
+            ...
+        ]
+    }
+    """
+    
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Get ingestion statistics."""
+        try:
+            # Get timezone-aware dates
+            now = timezone.now()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            week_start = today_start - timedelta(days=now.weekday())
+            month_start = today_start.replace(day=1)
+            
+            # Count properties created today, this week, and this month
+            properties_today = Property.objects.filter(created_at__gte=today_start).count()
+            properties_this_week = Property.objects.filter(created_at__gte=week_start).count()
+            properties_this_month = Property.objects.filter(created_at__gte=month_start).count()
+            
+            # Get last 10 properties
+            recent_properties = Property.objects.order_by('-created_at')[:10]
+            recent_properties_data = [
+                {
+                    'id': str(prop.id),
+                    'title': prop.property_name or 'Sin título',
+                    'location': prop.location or 'Ubicación no especificada',
+                    'price_usd': float(prop.price_usd) if prop.price_usd else None,
+                    'bedrooms': prop.bedrooms,
+                    'bathrooms': float(prop.bathrooms) if prop.bathrooms else None,
+                    'source_website': prop.source_website or 'Desconocido',
+                    'created_at': prop.created_at.isoformat()
+                }
+                for prop in recent_properties
+            ]
+            
+            return Response({
+                'status': 'success',
+                'properties_today': properties_today,
+                'properties_this_week': properties_this_week,
+                'properties_this_month': properties_this_month,
+                'recent_properties': recent_properties_data,
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error fetching ingestion stats: {e}", exc_info=True)
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class IngestURLView(APIView):
     """
     Endpoint to ingest property from URL.
     
     POST /ingest/url
     {
-        "url": "https://encuentra24.com/property/123"
+        "url": "https://encuentra24.com/property/123",
+        "use_websocket": true  // Optional: enables real-time progress updates
     }
     """
     
     authentication_classes = []  # No authentication required
     permission_classes = [AllowAny]
     
+    def _process_url_with_progress(self, url: str, source_website_override: str, task_id: str):
+        """Process URL in background thread with progress updates."""
+        import time
+        tracker = ProgressTracker(task_id)
+        
+        try:
+            # Small delay to allow frontend WebSocket to connect
+            time.sleep(0.5)
+            
+            # Step 1: Scraping (0-30%)
+            tracker.update(5, "Iniciando scraping...", stage="Scraping", substage="Conectando al sitio web")
+            logger.info(f"Step 1: Scraping URL: {url}")
+            
+            scraped_data = scrape_url(url)
+            tracker.update(20, "Contenido descargado", stage="Scraping", substage="Procesando HTML")
+            
+            if not scraped_data.get('success'):
+                tracker.error("Failed to scrape URL")
+                return
+            
+            html_content = scraped_data.get('html', scraped_data.get('text', ''))
+            tracker.update(30, f"HTML extraído ({len(html_content)} caracteres)", stage="Scraping", substage="Completado")
+            time.sleep(0.3)  # Allow UI to show stage
+            
+            # Step 2: Detection (30-40%)
+            tracker.update(35, "Detectando sitio web...", stage="Análisis", substage="Identificando fuente")
+            time.sleep(0.2)
+            
+            if source_website_override:
+                source_website = source_website_override
+            else:
+                source_website = detect_source_website(url)
+            
+            tracker.update(40, f"Sitio detectado: {source_website}", stage="Análisis")
+            time.sleep(0.2)
+            
+            # Step 3: Extraction (40-80%)
+            tracker.update(45, "Obteniendo extractor...", stage="Extracción", substage="Configurando herramientas")
+            time.sleep(0.2)
+            extractor = get_extractor(url)
+            extractor_name = extractor.__class__.__name__
+            use_site_extractor = extractor_name != 'BaseExtractor'
+            
+            if use_site_extractor:
+                tracker.update(50, f"Usando extractor específico: {extractor.site_name}", stage="Extracción", substage="Extracción rápida")
+                time.sleep(0.3)
+                extracted_data = extractor.extract(html_content, url)
+                tracker.update(75, "Datos extraídos con éxito", stage="Extracción", substage="Completado")
+                time.sleep(0.3)
+                extraction_method = 'site_specific'
+                extraction_confidence = 0.95
+            else:
+                tracker.update(50, "Usando extracción con IA...", stage="Extracción", substage="Procesando con LLM")
+                extracted_data = extract_property_data(html_content, url=url)
+                tracker.update(75, "IA completó la extracción", stage="Extracción", substage="Completado")
+                extraction_method = 'llm_based'
+                extraction_confidence = extracted_data.get('extraction_confidence', 0.5)
+            
+            # Step 4: Finalization (80-100%)
+            time.sleep(0.2)
+            tracker.update(85, "Finalizando...", stage="Procesamiento", substage="Limpiando datos")
+            time.sleep(0.3)
+            
+            extracted_data['source_website'] = source_website
+            tenant = Tenant.objects.first()
+            extracted_data['tenant'] = tenant
+            
+            if 'user_roles' not in extracted_data or not extracted_data['user_roles']:
+                extracted_data['user_roles'] = ['buyer', 'staff', 'admin']
+            
+            # Clean metadata fields
+            metadata_fields = ['tokens_used', 'raw_html', 'confidence_reasoning', 'extracted_at', 'field_confidence']
+            for field in metadata_fields:
+                extracted_data.pop(field, None)
+            
+            evidence_fields = [key for key in extracted_data.keys() if key.endswith('_evidence')]
+            for field in evidence_fields:
+                extracted_data.pop(field, None)
+            
+            tenant_id = extracted_data['tenant'].id if extracted_data.get('tenant') else None
+            extracted_data['tenant_id'] = tenant_id
+            extracted_data.pop('tenant', None)
+            
+            tracker.update(95, "Datos listos", stage="Procesamiento", substage="Preparando respuesta")
+            
+            # Send completion with serialized data
+            tracker.complete(serialize_for_json({
+                'property': extracted_data,
+                'extraction_method': extraction_method,
+                'extraction_confidence': extraction_confidence,
+                'extractor_used': extractor_name,
+            }), message="Extracción completada exitosamente")
+            
+            tracker.update(100, "¡Completado!", stage="Completado")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in background processing: {e}", exc_info=True)
+            tracker.error(f"Error: {str(e)}")
+    
     def post(self, request):
         """Process URL and extract property data."""
         
         logger.info(f"=== IngestURLView POST request received ===")
-        logger.info(f"Request data: {request.data}")
-        logger.info(f"User authenticated: {request.user.is_authenticated}")
-        logger.info(f"Permission classes: {self.permission_classes}")
         
         url = request.data.get('url')
-        source_website_override = request.data.get('source_website')  # Optional: user-selected website
+        source_website_override = request.data.get('source_website')
+        use_websocket = request.data.get('use_websocket', False)
         
         if not url:
-            logger.warning("URL not provided in request")
             return Response(
                 {'error': 'URL is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # If WebSocket requested, start background processing and return task_id
+        if use_websocket:
+            task_id = str(uuid.uuid4())
+            logger.info(f"🔌 WebSocket mode - Starting background task: {task_id}")
+            
+            # Start processing in background thread
+            thread = threading.Thread(
+                target=self._process_url_with_progress,
+                args=(url, source_website_override, task_id)
+            )
+            thread.daemon = True
+            thread.start()
+            
+            return Response({
+                'status': 'processing',
+                'task_id': task_id,
+                'message': 'Processing started. Connect to WebSocket for progress updates.'
+            }, status=status.HTTP_202_ACCEPTED)
+        
+        # Original synchronous processing (fallback)
         try:
             # Step 1: Scrape the URL
             logger.info(f"Step 1: Scraping URL: {url}")

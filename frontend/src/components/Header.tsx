@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageToggle from './LanguageToggle';
 import './Header.css';
 
 const Icons = {
@@ -30,12 +32,13 @@ const Icons = {
 
 export default function Header() {
   const location = useLocation();
+  const { t } = useLanguage();
 
   return (
     <header className="app-header">
       <div className="header-content">
         <Link to="/" className="header-logo">
-          {Icons.home && <Icons.home />} Real Estate LLM
+          {Icons.home && <Icons.home />} {t.header.logo}
         </Link>
         
         <nav className="header-nav">
@@ -43,20 +46,21 @@ export default function Header() {
             to="/data-collector" 
             className={`nav-link ${location.pathname === '/data-collector' ? 'active' : ''}`}
           >
-            <Icons.chart /> Data Collector
+            <Icons.chart /> {t.header.dataCollector}
           </Link>
           <Link 
             to="/chatbot" 
             className={`nav-link ${location.pathname === '/chatbot' ? 'active' : ''}`}
           >
-            <Icons.chat /> Chatbot
+            <Icons.chat /> {t.header.chatbot}
           </Link>
           <Link 
             to="/properties" 
             className={`nav-link ${location.pathname === '/properties' ? 'active' : ''}`}
           >
-            <Icons.building /> Properties
+            <Icons.building /> {t.header.properties}
           </Link>
+          <LanguageToggle />
         </nav>
       </div>
     </header>

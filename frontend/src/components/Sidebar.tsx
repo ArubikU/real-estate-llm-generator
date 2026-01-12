@@ -32,9 +32,9 @@ export function Sidebar({ properties, onSelectProperty, onRefresh, onClearAll }:
           <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
           </svg>
-          Saved Properties
+          Propiedades Guardadas
         </h2>
-        <p className="text-xs text-gray-500 mt-1">Organized by category</p>
+        <p className="text-xs text-gray-500 mt-1">Organizadas por categoría</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">
@@ -43,7 +43,7 @@ export function Sidebar({ properties, onSelectProperty, onRefresh, onClearAll }:
             <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p className="text-gray-500 text-sm">No properties saved yet</p>
+            <p className="text-gray-500 text-sm">Aún no hay propiedades guardadas</p>
           </div>
         ) : (
           Object.entries(groupedByCategory).map(([category, props]) => (
@@ -65,13 +65,13 @@ export function Sidebar({ properties, onSelectProperty, onRefresh, onClearAll }:
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Refresh
+          Actualizar
         </button>
         <button
           onClick={onClearAll}
           className="w-full bg-red-100 text-red-700 py-2 px-4 rounded hover:bg-red-200 transition text-sm"
         >
-          Clear All History
+          Borrar Todo el Historial
         </button>
       </div>
     </div>
@@ -129,22 +129,22 @@ function getCategoryFromUrl(url: string): string {
 
 const CATEGORIES: Record<string, { name: string; icon: string; color: string }> = {
   'proyectos-nuevos': {
-    name: 'New Projects',
+    name: 'Proyectos Nuevos',
     icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm7 5a1 1 0 00-2 0v1H8a1 1 0 000 2h1v1a1 1 0 002 0v-1h1a1 1 0 000-2h-1V9z" clip-rule="evenodd"></path></svg>',
     color: '#8b5cf6'
   },
   'venta-casas': {
-    name: 'Houses for Sale',
+    name: 'Casas en Venta',
     icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>',
     color: '#10b981'
   },
   'venta-apartamentos': {
-    name: 'Apartments for Sale',
+    name: 'Apartamentos en Venta',
     icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"></path></svg>',
     color: '#3b82f6'
   },
   'other': {
-    name: 'Other',
+    name: 'Otros',
     icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>',
     color: '#6b7280'
   }

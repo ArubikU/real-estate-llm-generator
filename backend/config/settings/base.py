@@ -29,6 +29,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',  # Must be first for WebSocket support
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
+    'channels',  # WebSocket support
     
     # Local apps
     'apps.tenants',
@@ -84,6 +86,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 # Database
 # Priority: LOCAL_DB_* vars > DATABASE_URL > default

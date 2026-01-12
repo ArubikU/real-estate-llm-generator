@@ -119,7 +119,7 @@ const Icons = {
   if (loading) {
     return (
       <div className="property-list-container">
-        <div className="loading-spinner">Loading properties...</div>
+        <div className="loading-spinner">Cargando propiedades...</div>
       </div>
     );
   }
@@ -138,18 +138,18 @@ const Icons = {
   return (
     <div className="property-list-container">
       <div className="property-list-header">
-        <h1><Icons.chart /> Indexed Properties</h1>
+        <h1><Icons.chart /> Propiedades Indexadas</h1>
         <p className="subtitle">
-          Properties available for chatbot queries
+          Propiedades disponibles para consultas del chatbot
         </p>
         <div className="stats">
           <div className="stat-card">
             <div className="stat-number">{totalProperties}</div>
-            <div className="stat-label">Total Properties</div>
+            <div className="stat-label">Total de Propiedades</div>
           </div>
           <div className="stat-card highlight">
             <div className="stat-number">{embeddedProperties.length}</div>
-            <div className="stat-label">With Embeddings</div>
+            <div className="stat-label">Con Embeddings</div>
           </div>
         </div>
       </div>
@@ -160,14 +160,14 @@ const Icons = {
             <div className="property-header">
               <h3 className="property-name">{property.property_name}</h3>
               {property.has_embedding ? (
-                <span className="badge badge-success"><Icons.check /> Indexed</span>
+                <span className="badge badge-success"><Icons.check /> Indexada</span>
               ) : (
-                <span className="badge badge-warning"><Icons.alert /> Not indexed</span>
+                <span className="badge badge-warning"><Icons.alert /> No indexada</span>
               )}
             </div>
 
             <div className="property-price">
-              {property.price_usd ? `$${property.price_usd.toLocaleString()} USD` : 'Price not available'}
+              {property.price_usd ? `$${property.price_usd.toLocaleString()} USD` : 'Precio no disponible'}
             </div>
 
             <div className="property-details">
@@ -212,9 +212,9 @@ const Icons = {
 
             {property.has_embedding && (
               <div className="suggested-queries">
-                <div className="queries-title"><Icons.chat /> Suggested queries:</div>
-                <div className="query-chip">How much does {property.property_name} cost?</div>
-                <div className="query-chip">Tell me more about {property.location ? `the property in ${property.location}` : 'this property'}</div>
+                <div className="queries-title"><Icons.chat /> Consultas sugeridas:</div>
+                <div className="query-chip">¿Cuánto cuesta {property.property_name}?</div>
+                <div className="query-chip">Cuéntame más sobre {property.location ? `la propiedad en ${property.location}` : 'esta propiedad'}</div>
               </div>
             )}
           </div>
@@ -223,12 +223,12 @@ const Icons = {
 
       {embeddedProperties.length > 0 && (
         <div className="tips-section">
-          <h3><Icons.lightbulb /> Chatbot Tips</h3>
+          <h3><Icons.lightbulb /> Consejos para el Chatbot</h3>
           <ul>
-            <li>Ask for specific locations: "Properties in {properties[0]?.location}?"</li>
-            <li>Use filters: "Houses with {properties[0]?.bedrooms || 3} bedrooms under ${Math.round((properties[0]?.price_usd || 300000) / 1000)}K"</li>
-            <li>Compare properties: "What's the difference between {properties[0]?.property_name} and {properties[1]?.property_name}?"</li>
-            <li>Ask about amenities: "Properties with pool?"</li>
+            <li>Pregunta por ubicaciones específicas: "¿Propiedades en {properties[0]?.location}?"</li>
+            <li>Usa filtros: "Casas con {properties[0]?.bedrooms || 3} habitaciones bajo ${Math.round((properties[0]?.price_usd || 300000) / 1000)}K"</li>
+            <li>Compara propiedades: "¿Cuál es la diferencia entre {properties[0]?.property_name} y {properties[1]?.property_name}?"</li>
+            <li>Pregunta sobre amenidades: "¿Propiedades con piscina?"</li>
           </ul>
         </div>
       )}

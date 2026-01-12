@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import './DataCollector.css'
+import { ProgressBar } from './ProgressBar'
+import { useProgressWebSocket } from '../hooks/useProgressWebSocket'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface PropertyData {
   id?: string
@@ -27,6 +30,17 @@ interface PropertyData {
   [key: string]: any
 }
 
+interface RecentProperty {
+  id: string
+  title: string
+  location: string
+  price_usd: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  source_website: string
+  created_at: string
+}
+
 interface CategoryConfig {
   name: string
   icon: string
@@ -43,6 +57,7 @@ interface WebsiteConfig {
 }
 
 function App() {
+  const { t } = useLanguage();
   const [inputType, setInputType] = useState<'url' | 'text'>('url')
   const [url, setUrl] = useState('')
   const [text, setText] = useState('')
@@ -56,6 +71,28 @@ function App() {
   const [confidence, setConfidence] = useState(0)
   const [supportedWebsites, setSupportedWebsites] = useState<WebsiteConfig[]>([])
   const [websitesLoading, setWebsitesLoading] = useState(true)
+  const [propertiesProcessedToday, setPropertiesProcessedToday] = useState<number>(0)
+  const [recentProperties, setRecentProperties] = useState<RecentProperty[]>([])
+
+  // WebSocket progress tracking
+  const { progress, isConnected, connect, disconnect, reset } = useProgressWebSocket({
+    onComplete: (data) => {
+      console.log('✅ Process complete:', data);
+      if (data && data.property) {
+        setExtractedProperty(data.property);
+        setConfidence(data.extraction_confidence || 0.9);
+        setShowResults(true);
+        // Reload stats after successful processing
+        loadIngestionStats();
+      }
+      setLoading(false);
+    },
+    onError: (errorMsg) => {
+      console.error('❌ WebSocket error:', errorMsg);
+      setError(errorMsg);
+      setLoading(false);
+    },
+  });
 
   // API Base URL configuration
   const getApiBase = () => {
@@ -84,52 +121,52 @@ function App() {
 
   const CATEGORIES: Record<string, CategoryConfig> = {
     'nuevos-proyectos': {
-      name: 'New Projects',
+      name: 'Proyectos Nuevos',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm7 5a1 1 0 00-2 0v1H8a1 1 0 000 2h1v1a1 1 0 002 0v-1h1a1 1 0 000-2h-1V9z" clip-rule="evenodd"></path></svg>',
       color: '#8b5cf6'
     },
     'venta-casas': {
-      name: 'Houses for Sale',
+      name: 'Casas en Venta',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>',
       color: '#10b981'
     },
     'venta-apartamentos': {
-      name: 'Apartments for Sale',
+      name: 'Apartamentos en Venta',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"></path></svg>',
       color: '#3b82f6'
     },
     'venta-negocios': {
-      name: 'Businesses for Sale',
+      name: 'Negocios en Venta',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"></path><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"></path></svg>',
       color: '#f59e0b'
     },
     'venta-lotes': {
-      name: 'Lots/Land',
+      name: 'Lotes/Terrenos',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>',
       color: '#059669'
     },
     'venta-fincas': {
-      name: 'Farms for Sale',
+      name: 'Fincas en Venta',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z"></path></svg>',
       color: '#84cc16'
     },
     'alquiler-casas': {
-      name: 'Houses for Rent',
+      name: 'Casas en Alquiler',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"></path></svg>',
       color: '#06b6d4'
     },
     'alquiler-apartamentos': {
-      name: 'Apartments for Rent',
+      name: 'Apartamentos en Alquiler',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z"></path></svg>',
       color: '#0ea5e9'
     },
     'alquiler-locales': {
-      name: 'Commercial for Rent',
+      name: 'Locales Comerciales',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13 7H7v6h6V7z"></path><path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clip-rule="evenodd"></path></svg>',
       color: '#8b5cf6'
     },
     other: {
-      name: 'Other',
+      name: 'Otros',
       icon: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>',
       color: '#6b7280'
     }
@@ -138,7 +175,25 @@ function App() {
   useEffect(() => {
     loadSupportedWebsites()
     loadHistoryFromBackend()
+    loadIngestionStats()
   }, [])
+  
+  const loadIngestionStats = async () => {
+    try {
+      const url = `${API_BASE}/ingest/stats/`
+      console.log('📥 [FETCH] Loading ingestion stats from:', url)
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      console.log('📥 [FETCH] Stats received:', data)
+      setPropertiesProcessedToday(data.properties_today || 0)
+      setRecentProperties(data.recent_properties || [])
+    } catch (error) {
+      console.error('Error loading ingestion stats:', error)
+    }
+  }
   
   const loadSupportedWebsites = async () => {
     try {
@@ -281,13 +336,15 @@ function App() {
     setLoading(true)
     setShowResults(false)
     setError('')
+    reset()
 
     try {
+      // Primero iniciar el job en el backend y obtener task_id
       const endpoint = inputType === 'url' ? `${API_BASE}/ingest/url/` : `${API_BASE}/ingest/text/`
-      console.log('📤 [FETCH] Processing property to:', endpoint)
+      console.log('📤 [FETCH] Starting processing job:', endpoint)
       const body = inputType === 'url' 
-        ? { url, source_website: sourceWebsite } 
-        : { text, source_website: sourceWebsite }
+        ? { url, source_website: sourceWebsite, use_websocket: true } 
+        : { text, source_website: sourceWebsite, use_websocket: true }
       console.log('📤 [FETCH] Request body:', body)
 
       const response = await fetch(endpoint, {
@@ -301,16 +358,25 @@ function App() {
       const data = await response.json()
 
       if (response.ok) {
-        setExtractedProperty(data.property)
-        setConfidence(data.extraction_confidence || 0.9)
-        setShowResults(true)
+        if (data.task_id) {
+          // Conectar al WebSocket con el task_id
+          console.log('🔌 Connecting to WebSocket with task_id:', data.task_id);
+          connect(data.task_id);
+        } else if (data.property) {
+          // Fallback: respuesta inmediata sin WebSocket
+          console.log('⚠️  No task_id, using immediate response');
+          setExtractedProperty(data.property);
+          setConfidence(data.extraction_confidence || 0.9);
+          setShowResults(true);
+          setLoading(false);
+        }
         setError('')
       } else {
         setError(data.error || 'Failed to process property')
+        setLoading(false)
       }
     } catch (error) {
       setError('Network error: ' + (error as Error).message)
-    } finally {
       setLoading(false)
     }
   }
@@ -481,16 +547,98 @@ function App() {
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Property Data Collector</h1>
                 <p className="text-gray-600">Paste a property URL or text to automatically extract structured data</p>
               </div>
-              {showResults && (
-                <button onClick={resetForm} className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                  </svg>
-                  Back to Search
-                </button>
-              )}
+              <div className="flex items-center gap-4">
+                {/* Properties Processed Today Counter */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg px-6 py-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+                      {propertiesProcessedToday}
+                    </div>
+                    <div>
+                      <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">
+                        {t.dataCollector.propertiesProcessedToday}
+                      </div>
+                      <div className="text-lg font-bold text-blue-900">
+                        {propertiesProcessedToday}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {showResults && (
+                  <button onClick={resetForm} className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Search
+                  </button>
+                )}
+              </div>
             </div>
           </header>
+
+          {/* Recent Properties Section */}
+          {recentProperties.length > 0 && !showResults && (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                {t.dataCollector.recentProperties || 'Últimas Propiedades Agregadas'}
+              </h2>
+              <div className="space-y-3">
+                {recentProperties.map((prop) => {
+                  const timeAgo = new Date(prop.created_at).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+                  
+                  return (
+                    <div 
+                      key={prop.id} 
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-800 truncate mb-1" title={prop.title}>
+                            {prop.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            📍 {prop.location}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            {prop.bedrooms && (
+                              <span className="flex items-center gap-1">
+                                🛏️ {prop.bedrooms}
+                              </span>
+                            )}
+                            {prop.bathrooms && (
+                              <span className="flex items-center gap-1">
+                                🚿 {prop.bathrooms}
+                              </span>
+                            )}
+                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              {prop.source_website}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-lg font-bold text-blue-600 mb-1">
+                            {prop.price_usd ? `$${prop.price_usd.toLocaleString()}` : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {timeAgo}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Input Section */}
           {!showResults && (
@@ -528,7 +676,7 @@ function App() {
               {/* Website Source Selector */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Source Website {websitesLoading && <span className="text-xs text-gray-400">(Loading...)</span>}
+                  {t.dataCollector.sourceWebsite} {websitesLoading && <span className="text-xs text-gray-400">({t.dataCollector.loading})</span>}
                 </label>
                 <select 
                   value={sourceWebsite}
@@ -574,7 +722,7 @@ function App() {
               {inputType === 'url' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property URL
+                    {t.dataCollector.propertyUrl}
                   </label>
                   <input 
                     type="url" 
@@ -593,13 +741,13 @@ function App() {
               {inputType === 'text' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Text/HTML
+                    {t.dataCollector.propertyText}
                   </label>
                   <textarea 
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     rows={10}
-                    placeholder="Paste property description, HTML, or text here..."
+                    placeholder={t.dataCollector.propertyTextPlaceholder}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -612,22 +760,32 @@ function App() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
-                Process Property
+                {t.dataCollector.processProperty}
               </button>
             </div>
           )}
 
-          {/* Loading Spinner */}
+          {/* Loading Spinner / Progress Bar */}
           {loading && (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <div className="spinner"></div>
-              <p className="text-gray-600 mt-4">Processing property data...</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Scraping from <span className="font-semibold">
-                  {supportedWebsites.find(w => w.id === sourceWebsite)?.name || 'Unknown'}
-                </span>
-              </p>
-              <p className="text-xs text-gray-400 mt-1">This may take 10-30 seconds</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <ProgressBar 
+                progress={progress.progress}
+                status={progress.status}
+                stage={progress.stage}
+                substage={progress.substage}
+              />
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-500">
+                  {t.dataCollector.processing} <span className="font-semibold">
+                    {supportedWebsites.find(w => w.id === sourceWebsite)?.name || 'Unknown'}
+                  </span>
+                </p>
+                {isConnected && (
+                  <p className="text-xs text-green-600 mt-1">
+                    🟢 {t.dataCollector.connectedRealtime}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -636,19 +794,19 @@ function App() {
             <div id="resultsSection" className="mb-6">
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">Extracted Property Data</h2>
+                  <h2 className="text-2xl font-bold text-gray-800">{t.dataCollector.extractedData}</h2>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                     confidence >= 0.8 ? 'bg-green-100 text-green-800' :
                     confidence >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
                     'bg-red-100 text-red-800'
                   }`}>
-                    {Math.round(confidence * 100)}% Confidence
+                    {Math.round(confidence * 100)}% {t.dataCollector.confidence}
                   </span>
                 </div>
                 
                 {/* Source Website Badge */}
                 <div className="mb-6 flex items-center gap-2 text-sm">
-                  <span className="text-gray-600">Source:</span>
+                  <span className="text-gray-600">{t.dataCollector.source}:</span>
                   <span className="px-3 py-1 bg-gray-100 rounded-full font-medium">
                     {supportedWebsites.find(w => w.id === extractedProperty.source_website)?.name || 'Other'}
                   </span>
@@ -657,26 +815,26 @@ function App() {
                 {/* Property Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {[
-                    { label: 'Property Name', value: extractedProperty.title || extractedProperty.property_name },
-                    { label: 'Listing ID', value: extractedProperty.listing_id },
-                    { label: 'Listing Status', value: extractedProperty.listing_status || extractedProperty.listing_type },
-                    { label: 'Price (USD)', value: extractedProperty.price_usd ? `$${parseFloat(String(extractedProperty.price_usd)).toLocaleString()}` : 'N/A' },
-                    { label: 'Type', value: extractedProperty.property_type_display || extractedProperty.property_type },
+                    { label: t.dataCollector.propertyName, value: extractedProperty.title || extractedProperty.property_name },
+                    { label: t.dataCollector.listingId, value: extractedProperty.listing_id },
+                    { label: t.dataCollector.listingStatus, value: extractedProperty.listing_status || extractedProperty.listing_type },
+                    { label: t.dataCollector.price, value: extractedProperty.price_usd ? `$${parseFloat(String(extractedProperty.price_usd)).toLocaleString()}` : t.common.na },
+                    { label: t.dataCollector.type, value: extractedProperty.property_type_display || extractedProperty.property_type },
                     { 
-                      label: 'Location', 
+                      label: t.dataCollector.location, 
                       value: extractedProperty.location || extractedProperty.address || (extractedProperty.city && extractedProperty.province ? `${extractedProperty.city}, ${extractedProperty.province}` : null),
                       isLocation: true,
                       lat: extractedProperty.latitude,
                       lng: extractedProperty.longitude
                     },
-                    { label: 'Bedrooms', value: extractedProperty.bedrooms },
-                    { label: 'Bathrooms', value: extractedProperty.bathrooms },
-                    { label: 'Square Meters', value: extractedProperty.area_m2 || extractedProperty.square_meters },
-                    { label: 'Lot Size (m²)', value: extractedProperty.lot_size_m2 },
-                    { label: 'Date Listed', value: extractedProperty.date_listed },
-                    { label: 'Status', value: extractedProperty.status_display || extractedProperty.status },
+                    { label: t.dataCollector.bedrooms, value: extractedProperty.bedrooms },
+                    { label: t.dataCollector.bathrooms, value: extractedProperty.bathrooms },
+                    { label: t.dataCollector.squareMeters, value: extractedProperty.area_m2 || extractedProperty.square_meters },
+                    { label: t.dataCollector.lotSize, value: extractedProperty.lot_size_m2 },
+                    { label: t.dataCollector.dateListed, value: extractedProperty.date_listed },
+                    { label: t.dataCollector.status, value: extractedProperty.status_display || extractedProperty.status },
                   ].map((field, index) => {
-                    const displayValue = field.value || 'N/A'
+                    const displayValue = field.value || t.common.na
                     
                     if ('isLocation' in field && field.isLocation && field.lat && field.lng) {
                       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${field.lat},${field.lng}`
@@ -689,7 +847,7 @@ function App() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             </svg>
-                            Ver en Google Maps ({field.lat}, {field.lng})
+                            {t.dataCollector.viewOnMaps} ({field.lat}, {field.lng})
                           </a>
                         </div>
                       )
@@ -698,7 +856,7 @@ function App() {
                     return (
                       <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
                         <p className="text-sm text-gray-600">{field.label}</p>
-                        <p className={`text-lg font-semibold ${displayValue === 'N/A' ? 'text-gray-400 italic' : 'text-gray-800'}`}>{displayValue}</p>
+                        <p className={`text-lg font-semibold ${displayValue === t.common.na ? 'text-gray-400 italic' : 'text-gray-800'}`}>{displayValue}</p>
                       </div>
                     )
                   })}
@@ -707,7 +865,7 @@ function App() {
                 {/* Description */}
                 {extractedProperty.description && (
                   <div className="col-span-2 border-l-4 border-blue-500 pl-4 py-2 mb-6">
-                    <p className="text-sm text-gray-600">Description</p>
+                    <p className="text-sm text-gray-600">{t.dataCollector.description}</p>
                     <p className="text-gray-800">{extractedProperty.description.substring(0, 200)}{extractedProperty.description.length > 200 ? '...' : ''}</p>
                   </div>
                 )}
@@ -715,13 +873,13 @@ function App() {
                 {/* Actions */}
                 <div className="flex gap-4 pt-6 border-t">
                   <button onClick={viewFullDetails} className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition">
-                    ✓ Save to Database
+                    ✓ {t.dataCollector.saveToDatabase}
                   </button>
                   <button onClick={() => alert('Edit functionality will open a detailed form')} className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition">
-                    ✎ Edit Details
+                    ✎ {t.dataCollector.editDetails}
                   </button>
                   <button onClick={resetForm} className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
-                    + New Property
+                    + {t.dataCollector.newProperty}
                   </button>
                 </div>
               </div>
@@ -729,7 +887,7 @@ function App() {
               {/* Error Section */}
               {error && (
                 <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="text-red-800 font-semibold mb-2">⚠️ Extraction Error</h3>
+                  <h3 className="text-red-800 font-semibold mb-2">{t.dataCollector.extractionError}</h3>
                   <p className="text-red-700">{error}</p>
                 </div>
               )}

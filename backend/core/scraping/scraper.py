@@ -378,166 +378,47 @@ class WebScraper:
                 # Wait a bit for any lazy-loaded content with random delay
                 await page.wait_for_timeout(random.randint(2000, 4000))
                 
-                # Check if it's encuentra24.com/costa-rica-es to extract clean text
+                # Check if it's encuentra24.com/costa-rica-es to extract HTML
                 if 'encuentra24.com/costa-rica-es' in url:
-                    logger.info("Encuentra24 Costa Rica detected - extracting clean text only")
+                    logger.info("Encuentra24 Costa Rica detected - extracting full HTML for structured extraction")
                     try:
-                        # Get title from page
-                        title = await page.title()
-                        
                         # Wait longer for dynamic content to load with random delay
                         await page.wait_for_timeout(random.randint(3000, 5000))
                         
-                        # Extract full body text instead of sections (content loads dynamically)
-                        body = await page.query_selector('body')
-                        full_body_text = await body.inner_text() if body else ""
-                        logger.info(f"Extracted full body text: {len(full_body_text)} chars")
-                        
-                        # Extract GPS coordinates from Google Maps embed
-                        coordinates_info = ""
-                        try:
-                            # Wait a bit more for maps to load
-                            await page.wait_for_timeout(1000)
-                            
-                            # Try to extract from Google Maps iframe and URLs
-                            import re
-                            page_html = await page.content()
-                            
-                            logger.info("🔍 DEBUG: Starting GPS extraction...")
-                            logger.info(f"🔍 DEBUG: Page HTML length: {len(page_html)} chars")
-                            logger.info(f"🔍 DEBUG: Using re.DOTALL flag for regex matching")
-                            
-                            # Method 1: Search for coordinates in Google Maps embed URLs (q= parameter)
-                            # Handle HTML entities (&amp;), line breaks, and any characters with DOTALL
-                            maps_embed_pattern = r'google\.com/maps/embed.*?q=([-\d.\s]+),([-\d.\s]+)'
-                            logger.info(f"🔍 DEBUG: Pattern: {maps_embed_pattern}")
-                            maps_embed_matches = re.findall(maps_embed_pattern, page_html, re.DOTALL)
-                            logger.info(f"🔍 DEBUG: Found {len(maps_embed_matches)} maps embed with coordinates")
-                            if maps_embed_matches:
-                                lat_raw, lng_raw = maps_embed_matches[0]
-                                # Remove whitespace and line breaks from coordinates
-                                lat = re.sub(r'\s+', '', lat_raw)
-                                lng = re.sub(r'\s+', '', lng_raw)
-                                coordinates_info += f"\nExtracted Coordinates: {lat}, {lng}"
-                                logger.info(f"📍 Extracted from maps embed: {lat}, {lng}")
-                            
-                            # Method 2: Search for coordinates in href links (@lat,lng format)
-                            maps_links = re.findall(r'href="[^"]*maps\.google\.com[^"]*@([-\d.]+),([-\d.]+)', page_html)
-                            logger.info(f"🔍 DEBUG: Found {len(maps_links)} maps href links with @ coordinates")
-                            if maps_links and not maps_embed_matches:
-                                lat, lng = maps_links[0]
-                                coordinates_info += f"\nExtracted Coordinates: {lat}, {lng}"
-                                logger.info(f"📍 Extracted from maps URL: {lat}, {lng}")
-                            
-                            # Method 3: Search for DMS coordinates in text (e.g., 9°36'55.9"N)
-                            dms_pattern = r'(\d+)°(\d+)\'([\d.]+)"([NS])\s+(\d+)°(\d+)\'([\d.]+)"([EW])'
-                            dms_match = re.search(dms_pattern, page_html)
-                            logger.info(f"🔍 DEBUG: DMS pattern match found: {dms_match is not None}")
-                            if dms_match:
-                                lat_deg, lat_min, lat_sec, lat_dir, lng_deg, lng_min, lng_sec, lng_dir = dms_match.groups()
-                                gps_text = f"{lat_deg}°{lat_min}'{lat_sec}\"{lat_dir} {lng_deg}°{lng_min}'{lng_sec}\"{lng_dir}"
-                                coordinates_info += f"\nGPS Coordinates (DMS): {gps_text}"
-                                logger.info(f"📍 Found GPS DMS: {gps_text}")
-                            
-                            # Method 4: Try to find the place-card elements in iframe
-                            frames = page.frames
-                            logger.info(f"🔍 DEBUG: Found {len(frames)} frames on page")
-                            for idx, frame in enumerate(frames):
-                                try:
-                                    frame_url = frame.url
-                                    if 'maps.google' in frame_url:
-                                        logger.info(f"🔍 DEBUG: Frame {idx} is Google Maps: {frame_url[:150]}")
-                                        
-                                        # Wait longer for map content to load
-                                        await frame.wait_for_timeout(3000)
-                                        
-                                        # Try to extract coordinates from iframe URL
-                                        if 'q=' in frame_url:
-                                            q_match = re.search(r'[?&]q=([-\d.]+)[,\s%2C]+([-\d.]+)', frame_url)
-                                            if q_match:
-                                                lat, lng = q_match.groups()
-                                                if not coordinates_info:  # Only add if we don't have coordinates yet
-                                                    coordinates_info += f"\nExtracted Coordinates: {lat}, {lng}"
-                                                logger.info(f"📍 Extracted from iframe URL q param: {lat}, {lng}")
-                                        
-                                        # Try to extract Plus Code address from iframe HTML
-                                        try:
-                                            iframe_html = await frame.content()
-                                            # Look for Plus Code pattern like "J98C+6J5 Jaco, Puntarenas Province"
-                                            plus_code_pattern = r'([A-Z0-9]{4}\+[A-Z0-9]{2,3})\s+([^,<>"]+(?:,\s*[^,<>"]+)*)'
-                                            plus_code_match = re.search(plus_code_pattern, iframe_html)
-                                            if plus_code_match:
-                                                plus_code_address = f"{plus_code_match.group(1)} {plus_code_match.group(2)}"
-                                                coordinates_info += f"\nFull Address: {plus_code_address}"
-                                                logger.info(f"📍 Found Plus Code Address: {plus_code_address}")
-                                        except Exception as e:
-                                            logger.debug(f"Could not extract Plus Code: {e}")
-                                    
-                                    # Try to extract address from the Google Maps iframe
-                                    place_card = await frame.query_selector('.place-card')
-                                    if place_card:
-                                        # Get the full address
-                                        address_elem = await frame.query_selector('.place-card .address')
-                                        if address_elem:
-                                            address_text = await address_elem.inner_text()
-                                            logger.info(f"🔍 DEBUG: Found address in Maps iframe: {address_text}")
-                                            coordinates_info += f"\nAddress: {address_text}"
-                                            logger.info(f"📍 Found Address from Maps: {address_text}")
-                                        
-                                        # Get place name with GPS coordinates
-                                        place_name = await frame.query_selector('.place-card .place-name')
-                                        if place_name:
-                                            gps_text = await place_name.inner_text()
-                                            logger.info(f"🔍 DEBUG: Found place-name in frame {idx}: {gps_text}")
-                                        if '°' in gps_text or 'N' in gps_text or 'W' in gps_text:
-                                            coordinates_info += f"\nGPS Coordinates (DMS): {gps_text}"
-                                            logger.info(f"📍 Found GPS in iframe: {gps_text}")
-                                    
-                                    address_elem = await frame.query_selector('.place-card .address')
-                                    if address_elem:
-                                        address_text = await address_elem.inner_text()
-                                        logger.info(f"🔍 DEBUG: Found address in frame {idx}: {address_text}")
-                                        coordinates_info += f"\nFull Address: {address_text}"
-                                        logger.info(f"📍 Found Address in iframe: {address_text}")
-                                except Exception as frame_error:
-                                    if 'maps.google' in frame.url:
-                                        logger.info(f"🔍 DEBUG: Error in Google Maps frame {idx}: {frame_error}")
-                            
-                            # Method 5: Search for address in main page HTML
-                            address_pattern = r'([A-Z0-9+]{4,}\s+[A-Za-zó]+,\s+[A-Za-z\s]+Province,\s+Costa\s+Rica)'
-                            address_matches = re.findall(address_pattern, page_html)
-                            logger.info(f"🔍 DEBUG: Found {len(address_matches)} address matches")
-                            if address_matches:
-                                coordinates_info += f"\nFull Address: {address_matches[0]}"
-                                logger.info(f"📍 Found Address in HTML: {address_matches[0]}")
-                            
-                            # Method 6: Search for any maps.google.com URLs in HTML (for debugging)
-                            all_maps_urls = re.findall(r'https?://[^"\s]*maps\.google[^"\s]*', page_html)
-                            logger.info(f"🔍 DEBUG: Found {len(all_maps_urls)} total Google Maps URLs")
-                            if all_maps_urls:
-                                logger.info(f"🔍 DEBUG: First maps URL preview: {all_maps_urls[0][:200]}")
-                                
-                        except Exception as e:
-                            logger.warning(f"⚠️ Could not extract GPS coordinates: {e}")
-                            logger.exception("Full traceback:")
-                        
-                        # Combine as clean text with coordinates
-                        text_content = f"Title: {title}\n\n{full_body_text}{coordinates_info}"
-                        html_content = text_content  # Use text as HTML since LLM works better with clean text
-                        
-                        logger.info(f"✅ Extracted clean text: {len(text_content)} chars")
-                        logger.info(f"Preview: {text_content[:200]}")
-                        logger.info(f"🔍 DEBUG: Coordinates info added: {len(coordinates_info)} chars")
-                        if coordinates_info:
-                            logger.info(f"🔍 DEBUG: Coordinates content: {coordinates_info}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Error extracting text: {e}, falling back to full page")
+                        # Extract full HTML content
                         html_content = await page.content()
                         text_content = await page.inner_text('body')
-                else:
-                    # Get full HTML content for other sites
-                    html_content = await page.content()
-                    text_content = await page.inner_text('body')
+                        title = await page.title()
+                        logger.info(f"✅ Extracted full HTML: {len(html_content)} chars")
+                        
+                        await browser.close()
+                        return {
+                            'success': True,
+                            'html': html_content,
+                            'text': text_content,
+                            'title': title,
+                            'images': [],
+                            'url': url,
+                            'method': 'playwright'
+                        }
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error extracting HTML: {e}, falling back to full page")
+                        html_content = await page.content()
+                        text_content = await page.inner_text('body')
+                        title = await page.title()
+                        await browser.close()
+                        return {
+                            'success': True,
+                            'html': html_content,
+                            'text': text_content,
+                            'title': title,
+                            'images': [],
+                            'url': url,
+                            'method': 'playwright'
+                        }
+                
+                # Get full HTML content for other sites
+                html_content = await page.content()
                 
                 # Try to extract property images
                 images = await page.query_selector_all('img')

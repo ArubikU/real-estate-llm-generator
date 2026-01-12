@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 import './Chatbot.css';
 
 interface Message {
@@ -33,12 +34,6 @@ console.log('  - VITE_API_URL:', import.meta.env.VITE_API_URL);
 console.log('  - Final API_URL:', API_URL);
 console.log('  - Mode:', import.meta.env.MODE);
 console.log('  - All env vars:', import.meta.env);
-
-const EXAMPLE_QUERIES = [
-  { text: 'Properties in Tamarindo?', icon: 'beach', label: 'Beaches' },
-  { text: 'Houses with 3 bedrooms under $300K', icon: 'home', label: '3 bedrooms' },
-  { text: 'Luxury properties with pool?', icon: 'luxury', label: 'Luxury' },
-];
 
 // SVG Icons
 const Icons = {
@@ -95,19 +90,29 @@ const Icons = {
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
   ),
+  globe: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </svg>
+  ),
 };
 
 export default function Chatbot() {
+  const { language, t, toggleLanguage } = useLanguage();
+  
+  const exampleQueries = [
+    { text: t.chatbot.queryBeaches, icon: 'beach', label: t.chatbot.exampleBeaches },
+    { text: t.chatbot.queryBedrooms, icon: 'home', label: t.chatbot.exampleBedrooms },
+    { text: t.chatbot.queryLuxury, icon: 'luxury', label: t.chatbot.exampleLuxury },
+  ];
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm your Kelly Properties assistant. I can help you find the perfect property in Costa Rica. What are you looking for?
-
-You can ask about:
-• Properties by location (Tamarindo, Manuel Antonio, etc.)
-• Specific filters (price, bedrooms, amenities)
-• Information about a particular property`,
+      content: t.chatbot.welcome,
       timestamp: new Date(),
     },
   ]);
@@ -117,6 +122,17 @@ You can ask about:
   const [conversations, setConversations] = useState<Array<{id: string; title: string; timestamp: Date; message_count: number}>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isProcessingRef = useRef(false);
+
+  // Update welcome message when language changes
+  useEffect(() => {
+    setMessages(prev => [
+      {
+        ...prev[0],
+        content: t.chatbot.welcome
+      },
+      ...prev.slice(1)
+    ]);
+  }, [language, t.chatbot.welcome]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,7 +149,7 @@ You can ask about:
 
   const loadConversations = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/chat/conversations/`);
+      const response = await fetch(`${API_URL.replace('/chat/', '/conversations/')}`);
       if (response.ok) {
         const data = await response.json();
         const formattedConversations = data.conversations.map((conv: any) => ({
@@ -151,9 +167,10 @@ You can ask about:
 
   const loadConversation = async (convId: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/chat/conversations/${convId}/`);
+      const response = await fetch(`${API_URL.replace('/chat/', '/conversations/')}${convId}/`);
       if (response.ok) {
         const data = await response.json();
+        
         const loadedMessages: Message[] = data.messages.map((msg: any) => ({
           id: msg.id,
           role: msg.role,
@@ -161,17 +178,11 @@ You can ask about:
           sources: msg.sources,
           timestamp: new Date(msg.created_at)
         }));
-        
-        // Add welcome message at the beginning if not present
+
         const welcomeMessage: Message = {
           id: 'welcome',
           role: 'assistant',
-          content: `Hello! I'm your Kelly Properties assistant. I can help you find the perfect property in Costa Rica. What are you looking for?
-
-You can ask about:
-• Properties by location (Tamarindo, Manuel Antonio, etc.)
-• Specific filters (price, bedrooms, amenities)
-• Information about a particular property`,
+          content: t.chatbot.welcome,
           timestamp: new Date(data.messages[0]?.created_at || new Date()),
         };
         
@@ -187,13 +198,11 @@ You can ask about:
   const formatMessageContent = (content: string) => {
     if (!content) return '';
     
-    // Split by double newlines first (paragraphs)
     const paragraphs = content.split('\n\n');
     
     return paragraphs.map((para, idx) => {
       const trimmed = para.trim();
       
-      // Check if it's a heading (### or ##)
       if (trimmed.startsWith('###')) {
         const text = trimmed.replace(/^###\s*/, '');
         const formatted = formatInlineElements(text);
@@ -210,7 +219,6 @@ You can ask about:
         return <h2 key={idx}>{formatted}</h2>;
       }
       
-      // Check if it's a list
       const lines = para.split('\n');
       const isListItem = lines.every(line => 
         line.trim().startsWith('•') || 
@@ -220,12 +228,10 @@ You can ask about:
       );
       
       if (isListItem) {
-        const items = lines
-          .filter(line => line.trim())
-          .map(line => {
-            const cleaned = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
-            return formatInlineElements(cleaned);
-          });
+        const items = lines.map(line => {
+          const cleaned = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+          return formatInlineElements(cleaned);
+        });
         
         return (
           <ul key={idx}>
@@ -236,40 +242,33 @@ You can ask about:
         );
       }
       
-      // Regular paragraph with inline formatting
       const formatted = formatInlineElements(trimmed);
       return <p key={idx}>{formatted}</p>;
     });
   };
 
-  // Helper to format inline elements like **bold**, `code`, etc.
   const formatInlineElements = (text: string): (string | React.ReactElement)[] => {
     const parts: (string | React.ReactElement)[] = [];
     let currentIndex = 0;
     
-    // Regex to match **bold**, `code`, or plain text
     const regex = /(\*\*.*?\*\*|`[^`]+`)/g;
     let match;
     
     while ((match = regex.exec(text)) !== null) {
-      // Add text before match
       if (match.index > currentIndex) {
         parts.push(text.substring(currentIndex, match.index));
       }
       
       const matched = match[0];
       if (matched.startsWith('**') && matched.endsWith('**')) {
-        // Bold text
         parts.push(<strong key={match.index}>{matched.slice(2, -2)}</strong>);
       } else if (matched.startsWith('`') && matched.endsWith('`')) {
-        // Code text
         parts.push(<code key={match.index}>{matched.slice(1, -1)}</code>);
       }
       
       currentIndex = match.index + matched.length;
     }
     
-    // Add remaining text
     if (currentIndex < text.length) {
       parts.push(text.substring(currentIndex));
     }
@@ -281,7 +280,6 @@ You can ask about:
     const text = messageText || inputValue.trim();
     if (!text || isLoading) return;
 
-    // Prevent double execution
     if (isProcessingRef.current) {
       console.log('⚠️ Already processing, skipping duplicate call');
       return;
@@ -290,7 +288,6 @@ You can ask about:
     isProcessingRef.current = true;
     console.log('🚀 handleSendMessage called - PROCESSING');
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -304,7 +301,6 @@ You can ask about:
 
     console.log('📤 Sending message to:', API_URL);
 
-    // Create placeholder for assistant message
     const assistantMessageId = `assistant-${Date.now()}`;
     const assistantMessage: Message = {
       id: assistantMessageId,
@@ -336,7 +332,6 @@ You can ask about:
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedContent = '';
@@ -355,7 +350,6 @@ You can ask about:
           break;
         }
 
-        // Decode the chunk
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n');
 
@@ -373,7 +367,6 @@ You can ask about:
                 }
               } else if (parsed.type === 'content') {
                 accumulatedContent += parsed.content;
-                // Update message with accumulated content
                 setMessages((prev) => 
                   prev.map((msg) =>
                     msg.id === assistantMessageId
@@ -390,7 +383,6 @@ You can ask about:
                   hasDoubleNewlines: accumulatedContent.includes('\n\n'),
                   preview: accumulatedContent.substring(0, 150)
                 });
-                // Final update with all data
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMessageId
@@ -398,13 +390,11 @@ You can ask about:
                       : msg
                   )
                 );
-                // Reload conversations list to show new conversation
                 loadConversations();
               } else if (parsed.type === 'error') {
                 throw new Error(parsed.error);
               }
             } catch (e) {
-              // Ignore JSON parse errors for incomplete chunks
               if (e instanceof SyntaxError) {
                 continue;
               }
@@ -416,7 +406,6 @@ You can ask about:
     } catch (error) {
       console.error('Error:', error);
       
-      // Update the assistant message with error
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
@@ -445,12 +434,10 @@ You can ask about:
 
   const handleExampleQuery = (query: string) => {
     setInputValue(query);
-    // Auto-send the query
     setTimeout(() => handleSendMessage(query), 100);
   };
 
   const handleNewConversation = () => {
-    // Save current conversation if it has messages
     if (conversationId && messages.length > 1) {
       setConversations(prev => [{
         id: conversationId,
@@ -459,16 +446,10 @@ You can ask about:
         message_count: messages.length - 1
       }, ...prev]);
     }
-    // Reset to new conversation
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm your Kelly Properties assistant. I can help you find the perfect property in Costa Rica. What are you looking for?
-
-You can ask about:
-• Properties by location (Tamarindo, Manuel Antonio, etc.)
-• Specific filters (price, bedrooms, amenities)
-• Information about a particular property`,
+      content: t.chatbot.welcome,
       timestamp: new Date(),
     }]);
     setConversationId(null);
@@ -479,21 +460,31 @@ You can ask about:
       {/* Left Sidebar */}
       <div className="chatbot-sidebar">
         <div className="sidebar-header">
-          <h2>Conversations</h2>
+          <div className="sidebar-title-row">
+            <h2>{t.chatbot.conversations}</h2>
+            <button 
+              className="language-toggle-btn" 
+              onClick={toggleLanguage}
+              title={language === 'en' ? t.chatbot.changeToSpanish : t.chatbot.changeToEnglish}
+            >
+              <Icons.globe />
+              <span>{language === 'en' ? 'ES' : 'EN'}</span>
+            </button>
+          </div>
           <button 
             className="new-conversation-btn" 
             onClick={handleNewConversation} 
-            title="New conversation"
+            title={t.chatbot.newConversation}
           >
             <Icons.plus />
-            <span>New Chat</span>
+            <span>{t.chatbot.newChat}</span>
           </button>
         </div>
         <div className="conversations-list">
           {conversations.length === 0 ? (
             <div className="empty-conversations">
               <Icons.message />
-              <p>No conversations yet</p>
+              <p>{t.chatbot.noConversations}</p>
             </div>
           ) : (
             conversations.map((conv) => (
@@ -507,7 +498,7 @@ You can ask about:
                 <div className="conversation-info">
                   <div className="conversation-title">{conv.title}</div>
                   <div className="conversation-date">
-                    {conv.timestamp.toLocaleDateString()} • {conv.message_count} messages
+                    {conv.timestamp.toLocaleDateString()} • {conv.message_count} {t.chatbot.messages}
                   </div>
                 </div>
               </div>
@@ -517,9 +508,32 @@ You can ask about:
       </div>
 
       {/* Main Chat Area */}
-      <div className="chatbot-wrapper">
-        {/* Messages */}
+      <div className="chatbot-main">
         <div className="chatbot-messages">
+          {/* Example queries at top */}
+          {messages.length === 1 && (
+            <div className="example-queries">
+              <h3>{t.chatbot.tryAsking}</h3>
+              <div className="example-queries-grid">
+                {exampleQueries.map((query, idx) => {
+                  const IconComponent = Icons[query.icon as keyof typeof Icons];
+                  return (
+                    <button
+                      key={idx}
+                      className="example-query-btn"
+                      onClick={() => handleExampleQuery(query.text)}
+                      disabled={isLoading}
+                    >
+                      {IconComponent && <IconComponent />}
+                      <span>{query.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Messages */}
           {messages.map((message) => (
             <div key={message.id} className={`message ${message.role}`}>
               <div className="message-avatar">
@@ -528,38 +542,42 @@ You can ask about:
               <div className="message-content">
                 <div className="message-text">
                   {formatMessageContent(message.content)}
-                  {/* Show cursor when streaming and this is the last message */}
-                  {isLoading && message.role === 'assistant' && messages[messages.length - 1].id === message.id && (
-                    <span className="streaming-cursor"></span>
-                  )}
                 </div>
-
-                {/* Sources */}
                 {message.sources && message.sources.length > 0 && (
                   <div className="message-sources">
                     <div className="sources-title">
-                      <Icons.book /> Sources consulted:
+                      <Icons.book />
+                      <span>{t.chatbot.sources}</span>
                     </div>
-                    {message.sources.map((source, idx) => {
-                      const relevance = (source.relevance_score * 100).toFixed(0);
-                      const metadata = source.metadata || {};
-                      
-                      return (
+                    <div className="sources-list">
+                      {message.sources.map((source, idx) => (
                         <div key={idx} className="source-item">
-                          <strong>{idx + 1}.</strong>{' '}
-                          {metadata.property_name || source.content_type}
-                          {metadata.location && ` - ${metadata.location}`}
-                          {metadata.price_usd && (
-                            <span className="source-price">
-                              {metadata.price_usd ? ` ($${metadata.price_usd.toLocaleString()} USD)` : ''}
-                            </span>
+                          <div className="source-header">
+                            <span className="source-type">{source.content_type}</span>
+                            {source.metadata?.property_name && (
+                              <span className="source-property">{source.metadata.property_name}</span>
+                            )}
+                          </div>
+                          <div className="source-excerpt">{source.excerpt}</div>
+                          {source.metadata && (
+                            <div className="source-metadata">
+                              {source.metadata.location && (
+                                <span>📍 {source.metadata.location}</span>
+                              )}
+                              {source.metadata.price_usd && (
+                                <span>💰 ${source.metadata.price_usd.toLocaleString()}</span>
+                              )}
+                              {source.metadata.bedrooms && (
+                                <span>🛏️ {source.metadata.bedrooms} {t.chatbot.bedrooms}</span>
+                              )}
+                              {source.metadata.bathrooms && (
+                                <span>🚿 {source.metadata.bathrooms} {t.chatbot.bathrooms}</span>
+                              )}
+                            </div>
                           )}
-                          <span className="source-relevance">
-                            {' '}(relevance: {relevance}%)
-                          </span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -587,7 +605,7 @@ You can ask about:
         <div className="chatbot-input-container">
           {/* Example queries */}
           <div className="example-queries-bottom">
-            {EXAMPLE_QUERIES.map((query, idx) => {
+            {exampleQueries.map((query, idx) => {
               const IconComponent = Icons[query.icon as keyof typeof Icons];
               return (
                 <button
@@ -608,7 +626,7 @@ You can ask about:
             <input
               type="text"
               className="chatbot-input"
-              placeholder="Type your question here..."
+              placeholder={t.chatbot.placeholder}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}

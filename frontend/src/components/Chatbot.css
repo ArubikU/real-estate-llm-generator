@@ -25,12 +25,47 @@
   gap: 12px;
 }
 
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .sidebar-header h2 {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   letter-spacing: 0.5px;
   color: #ffffff;
+  flex: 1;
+}
+
+.language-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 13px;
+  font-weight: 600;
+  height: 36px;
+}
+
+.language-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.language-toggle-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .new-conversation-btn {
