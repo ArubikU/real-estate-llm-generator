@@ -131,8 +131,14 @@ class WebScraper:
             logger.warning(f"❌ [SCRAPFLY] Not available - enabled={self.scrapfly_enabled}, client={self.scrapfly_client is not None}")
             return False
         
+        # In production (if Scrapfly is enabled), use it for ALL protected sites
         needs_bypass = self._needs_cloudflare_bypass(url)
         logger.info(f"🔍 [SCRAPFLY CHECK] Needs Cloudflare bypass: {needs_bypass}")
+        
+        # If Scrapfly is available and site needs bypass, use it
+        if needs_bypass:
+            logger.info(f"✅ [SCRAPFLY] Will use Scrapfly for protected site: {domain}")
+        
         return needs_bypass
     
     def _needs_residential_proxy(self, url: str) -> bool:

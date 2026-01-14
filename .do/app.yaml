@@ -96,6 +96,10 @@ services:
   - key: OPENAI_MODEL_COMPLEX
     scope: RUN_AND_BUILD_TIME
     value: gpt-4o
+  - key: SCRAPFLY_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:placeholder-replace-with-real-key:YourScrapflyAPIKeyGoesHere]
   - key: SECURE_SSL_REDIRECT
     scope: RUN_AND_BUILD_TIME
     value: "True"

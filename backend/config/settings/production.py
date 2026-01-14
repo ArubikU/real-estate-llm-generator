@@ -57,6 +57,10 @@ CELERY_TASK_ALWAYS_EAGER = False
 # Cache settings for production
 CACHES['default']['TIMEOUT'] = 3600 * 24  # 24 hours
 
+# Scrapfly configuration (for Cloudflare bypass in production)
+SCRAPFLY_ENABLED = True
+SCRAPFLY_API_KEY = env('SCRAPFLY_API_KEY', default='')
+
 # ALLOWED_HOSTS is already wrapped with AllowInternalIPs at the top of this file
 
 # CORS - specify exact origins
