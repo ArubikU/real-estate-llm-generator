@@ -167,6 +167,7 @@ export interface Translations {
     changeToSpanish: string;
     changeToEnglish: string;
     newConversation: string;
+    tryAsking: string;
     exampleBeaches: string;
     exampleBedrooms: string;
     exampleLuxury: string;
@@ -357,6 +358,7 @@ Puedes preguntar sobre:
       changeToSpanish: 'Cambiar a Español',
       changeToEnglish: 'Switch to English',
       newConversation: 'Nueva conversación',
+      tryAsking: 'Intenta preguntar:',
       exampleBeaches: 'Playas',
       exampleBedrooms: '3 habitaciones',
       exampleLuxury: 'Lujo',
@@ -541,6 +543,7 @@ You can ask about:
       changeToSpanish: 'Cambiar a Español',
       changeToEnglish: 'Switch to English',
       newConversation: 'New conversation',
+      tryAsking: 'Try asking:',
       exampleBeaches: 'Beaches',
       exampleBedrooms: '3 bedrooms',
       exampleLuxury: 'Luxury',

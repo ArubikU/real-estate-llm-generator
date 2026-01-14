@@ -11,7 +11,6 @@ interface BatchItem {
 }
 
 export default function BatchProcessing() {
-  const { t } = useLanguage()
   const [urls, setUrls] = useState('')
   const [resultsSheetId, setResultsSheetId] = useState('')
   const [useResultsSheet, setUseResultsSheet] = useState(false)
@@ -468,7 +467,6 @@ export default function BatchProcessing() {
 
   const completedCount = batchItems.filter(item => item.status === 'completed').length
   const errorCount = batchItems.filter(item => item.status === 'error').length
-  const pendingCount = batchItems.filter(item => item.status === 'pending').length
   const processingCount = batchItems.filter(item => item.status === 'processing').length
 
   return (
@@ -857,7 +855,7 @@ export default function BatchProcessing() {
 
                           {item.status === 'completed' && item.result && (
                             <div 
-                              onClick={(e) => {
+                              onClick={(_e) => {
                                 console.log('🖱️ Click en resultado completado!')
                                 console.log('📦 Item:', item)
                                 console.log('📊 Result:', item.result)

@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import TutorialStep1 from './TutorialStep1'
 import TutorialStep2 from './TutorialStep2'
 import TutorialStep3 from './TutorialStep3'

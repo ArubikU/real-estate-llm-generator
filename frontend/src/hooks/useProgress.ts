@@ -36,7 +36,7 @@ export function useProgress(taskId: string | null, options: UseProgressOptions =
   });
 
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const optionsRef = useRef(options);

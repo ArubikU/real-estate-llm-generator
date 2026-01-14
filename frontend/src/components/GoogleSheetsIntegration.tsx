@@ -10,7 +10,6 @@ interface SheetTemplate {
 }
 
 export default function GoogleSheetsIntegration() {
-  const { t } = useLanguage()
   const [spreadsheetId, setSpreadsheetId] = useState('')
   const [notifyEmail, setNotifyEmail] = useState('')
   const [templateTitle, setTemplateTitle] = useState('')

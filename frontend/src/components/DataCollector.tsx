@@ -83,7 +83,7 @@ function App() {
   }>({})
 
   // WebSocket progress tracking
-  const { progress, isConnected, connect, disconnect, reset } = useProgressWebSocket({
+  const { progress, isConnected, connect, disconnect: _disconnect, reset } = useProgressWebSocket({
     onComplete: (data) => {
       console.log('✅ Process complete:', data);
       if (data && data.property) {
