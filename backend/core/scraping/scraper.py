@@ -419,6 +419,7 @@ class WebScraper:
                 
                 # Get full HTML content for other sites
                 html_content = await page.content()
+                text_content = await page.inner_text('body')
                 
                 # Try to extract property images
                 images = await page.query_selector_all('img')

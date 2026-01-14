@@ -1,26 +1,41 @@
 import React from 'react';
 import './ProgressBar.css';
+import type { ProgressState } from '../hooks/useProgress';
 
 interface ProgressBarProps {
-  progress: number; // 0-100
-  status: string;
+  progress: number | ProgressState; // Support both old and new usage
+  status?: string;
   stage?: string;
   substage?: string;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({ 
-  progress, 
-  status, 
-  stage,
-  substage 
+  progress: progressProp, 
+  status: statusProp, 
+  stage: stageProp,
+  substage: substageProp 
 }) => {
+  // Handle both old (number) and new (ProgressState) usage
+  const isProgressState = typeof progressProp === 'object';
+  const progress = isProgressState ? progressProp.progress : progressProp;
+  const status = isProgressState ? progressProp.message : (statusProp || '');
+  const stage = isProgressState ? progressProp.stage : (stageProp || '');
+  const substage = isProgressState ? progressProp.substage : (substageProp || '');
+  const step = isProgressState ? progressProp.step : undefined;
+  const total_steps = isProgressState ? progressProp.total_steps : undefined;
+  const hasError = isProgressState ? progressProp.hasError : false;
+  const isComplete = isProgressState ? progressProp.isComplete : false;
+  
   const getStatusColor = () => {
-    if (progress === 100) return '#10b981'; // green
+    if (hasError) return '#ef4444'; // red
+    if (isComplete || progress === 100) return '#10b981'; // green
     if (progress > 0) return '#3b82f6'; // blue
     return '#6b7280'; // gray
   };
 
   const getStageEmoji = () => {
+    if (hasError) return '❌';
+    if (isComplete) return '✅';
     if (!stage) return '⏳';
     if (stage.includes('scraping') || stage.includes('fetching')) return '🌐';
     if (stage.includes('parsing') || stage.includes('extract')) return '🔍';
@@ -40,6 +55,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             <div className="progress-status">{status}</div>
             {stage && <div className="progress-stage">{stage}</div>}
             {substage && <div className="progress-substage">{substage}</div>}
+            {step && total_steps && (
+              <div className="progress-step">Propiedad {step} de {total_steps}</div>
+            )}
           </div>
         </div>
         <div className="progress-percentage">

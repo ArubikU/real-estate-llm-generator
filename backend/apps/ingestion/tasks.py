@@ -97,6 +97,8 @@ def generate_property_embedding_task(property_id):
         embedding = embeddings.embed_query(property_obj.content_for_search)
         property_obj.embedding = embedding
         property_obj.save(update_fields=['embedding', 'content_for_search'])
+    except Exception as e:
+        logger.error(f"Error generating embedding for property {property_id}: {e}")
 
 
 @shared_task(bind=True, max_retries=3)
@@ -205,3 +207,113 @@ def generate_document_embedding_task(document_id):
     except Exception as e:
         logger.error(f"Error generating embedding: {e}")
         return {'status': 'failed', 'error': str(e)}
+
+
+@shared_task(bind=True, max_retries=3)
+def process_google_sheet_task(
+    self, 
+    spreadsheet_id: str, 
+    notify_email: str,
+    task_id: str = None,
+    create_results_sheet: bool = False,
+    results_sheet_id: str = None
+):
+    """
+    Process all pending rows from a Google Sheet asynchronously.
+    
+    Args:
+        spreadsheet_id: The Google Sheets ID
+        notify_email: Email to send notification when complete
+        task_id: Optional task ID for progress tracking
+        create_results_sheet: If True, writes to results spreadsheet
+        results_sheet_id: Optional ID of pre-created results spreadsheet
+    """
+    from apps.tenants.models import Tenant
+    from apps.properties.models import Property
+    from core.scraping.scraper import scrape_url
+    from core.llm.extraction import extract_property_data
+    from apps.ingestion.google_sheets import process_sheet_batch
+    from apps.ingestion.email_notifications import send_batch_completion_email, send_error_notification
+    
+    logger.info(f"Starting Google Sheet processing: {spreadsheet_id}")
+    
+    def process_url(url: str):
+        """Process a single URL and return success status."""
+        try:
+            scraped_data = scrape_url(url)
+            
+            if not scraped_data.get('success'):
+                return False, {'error': 'Failed to scrape URL'}
+            
+            html_content = scraped_data.get('html', scraped_data.get('text', ''))
+            extracted_data = extract_property_data(html_content, url=url)
+            
+            # Set tenant
+            extracted_data['tenant'] = Tenant.objects.first()
+            extracted_data['user_roles'] = ['buyer', 'staff', 'admin']
+            
+            # Clean metadata
+            metadata_fields = ['tokens_used', 'raw_html', 'confidence_reasoning', 
+                             'extracted_at', 'field_confidence']
+            for field in metadata_fields:
+                extracted_data.pop(field, None)
+            
+            evidence_fields = [key for key in extracted_data.keys() if key.endswith('_evidence')]
+            for field in evidence_fields:
+                extracted_data.pop(field, None)
+            
+            # Create property
+            property_obj = Property.objects.create(**extracted_data)
+            
+            return True, {'property_id': str(property_obj.id)}
+            
+        except Exception as e:
+            logger.error(f"Error processing URL {url}: {e}")
+            return False, {'error': str(e)}
+    
+    try:
+        # Process the sheet
+        results = process_sheet_batch(
+            spreadsheet_id=spreadsheet_id,
+            process_callback=process_url,
+            task_id=task_id,
+            create_results_sheet=create_results_sheet,
+            results_sheet_id=results_sheet_id
+        )
+        
+        # Send completion email
+        admin_panel_url = "http://localhost:8080/admin/properties/property/"  # Update with actual URL
+        send_batch_completion_email(
+            recipient_email=notify_email,
+            results=results,
+            spreadsheet_id=spreadsheet_id,
+            admin_panel_url=admin_panel_url
+        )
+        
+        logger.info(f"Google Sheet processing completed: {results['processed']} processed, {results['failed']} failed")
+        
+        result_data = {
+            'status': 'completed',
+            'results': results
+        }
+        
+        # Include results spreadsheet info if it was created
+        if 'results_spreadsheet' in results:
+            result_data['results_spreadsheet'] = results['results_spreadsheet']
+            logger.info(f"Results spreadsheet created: {results['results_spreadsheet']['spreadsheet_url']}")
+        
+        return result_data
+        
+    except Exception as e:
+        logger.error(f"Error in Google Sheet task: {e}", exc_info=True)
+        
+        # Send error notification
+        send_error_notification(
+            recipient_email=notify_email,
+            error_message=str(e),
+            spreadsheet_id=spreadsheet_id
+        )
+        
+        # Retry the task
+        raise self.retry(exc=e, countdown=60)
+

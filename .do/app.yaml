@@ -111,7 +111,7 @@ services:
   github:
     branch: main
     deploy_on_push: true
-    repo: 1di210299/real-estate-llm-generator
+    repo: DTv2-1/real-estate-llm-generator
   health_check:
     failure_threshold: 3
     http_path: /health/
@@ -135,7 +135,7 @@ services:
   github:
     branch: main
     deploy_on_push: true
-    repo: 1di210299/real-estate-llm-generator
+    repo: DTv2-1/real-estate-llm-generator
   health_check:
     failure_threshold: 3
     http_path: /health

@@ -6,7 +6,12 @@ from .views import (
     SavePropertyView, 
     GenerateEmbeddingsView,
     SupportedWebsitesView,
-    IngestionStatsView
+    IngestionStatsView,
+    ProcessGoogleSheetView,
+    CreateGoogleSheetTemplateView,
+    CancelBatchView,
+    BatchExportToSheetsView,
+    BatchExportToDatabaseView
 )
 
 urlpatterns = [
@@ -15,6 +20,11 @@ urlpatterns = [
     path('url/', IngestURLView.as_view(), name='ingest-url'),
     path('text/', IngestTextView.as_view(), name='ingest-text'),
     path('batch/', IngestBatchView.as_view(), name='ingest-batch'),
+    path('cancel-batch/', CancelBatchView.as_view(), name='cancel-batch'),
     path('save/', SavePropertyView.as_view(), name='save-property'),
     path('generate-embeddings/', GenerateEmbeddingsView.as_view(), name='generate-embeddings'),
+    path('google-sheet/', ProcessGoogleSheetView.as_view(), name='process-google-sheet'),
+    path('create-sheet-template/', CreateGoogleSheetTemplateView.as_view(), name='create-sheet-template'),
+    path('batch-export/sheets/', BatchExportToSheetsView.as_view(), name='batch-export-sheets'),
+    path('batch-export/database/', BatchExportToDatabaseView.as_view(), name='batch-export-database'),
 ]

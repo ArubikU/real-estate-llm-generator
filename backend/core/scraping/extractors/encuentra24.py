@@ -5,6 +5,7 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from decimal import Decimal
 import re
+import json
 import openai
 from django.conf import settings
 from .base import BaseExtractor
@@ -18,16 +19,321 @@ class Encuentra24Extractor(BaseExtractor):
         self.site_name = "encuentra24.com"
     
     def extract(self, html: str, url: Optional[str] = None):
-        """Override extract to include custom fields."""
-        # Call parent extract first
+        """Override extract to include custom fields and AI enhancement."""
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Extract ALL relevant text from page (clean, no HTML tags)
+        full_text = self.extract_all_text(soup)
+        print(f"📝 Texto limpio extraído: {len(full_text)} caracteres (vs {len(html)} chars HTML)")
+        
+        # Extract construction stage from timeline
+        construction_stage = self.extract_construction_stage(soup)
+        
+        # Use AI to process ALL the text and extract fields
+        ai_enhanced_data = self.enhance_with_ai(full_text, construction_stage)
+        
+        # Call parent extract
         data = super().extract(html, url)
         
+        # Merge AI-enhanced data (AI data takes precedence)
+        data.update(ai_enhanced_data)
+        
         # Add custom fields
-        soup = BeautifulSoup(html, 'html.parser')
         data['listing_id'] = self.extract_listing_id(soup)
         data['date_listed'] = self.extract_date_listed(soup)
+        data['construction_stage'] = construction_stage
         
         return data
+    
+    def extract_structured_details(self, soup: BeautifulSoup) -> dict:
+        """Extract all details from d3-property-details__content section."""
+        details = {}
+        
+        # Find the content section
+        content_div = soup.find('div', class_='d3-property-details__content')
+        if not content_div:
+            return details
+        
+        # Extract all label-detail pairs
+        labels = content_div.find_all('div', class_='d3-property-details__detail-label')
+        
+        for label_div in labels:
+            label_text = label_div.get_text(strip=True)
+            detail_p = label_div.find('p', class_='d3-property-details__detail')
+            
+            if detail_p:
+                detail_text = detail_p.get_text(strip=True)
+                
+                # Parse different fields
+                if 'Categoria' in label_text or 'Categoría' in label_text:
+                    details['category'] = detail_text
+                elif 'Localización' in label_text or 'Ubicación' in label_text:
+                    details['location'] = detail_text
+                elif 'Modelo' in label_text:
+                    details['model'] = detail_text
+                elif 'Precio' in label_text and 'M²' not in label_text:
+                    # Remove quotes and parse price
+                    price_clean = detail_text.replace("'", "").replace(",", "").strip()
+                    details['price_text'] = price_clean
+                    try:
+                        details['price'] = int(re.sub(r'[^\d]', '', price_clean))
+                    except:
+                        pass
+                elif 'Precio / m²' in label_text or 'Precio / M²' in label_text:
+                    details['price_per_sqm'] = detail_text
+                elif 'M²' in label_text and 'Precio' not in label_text:
+                    details['area_m2'] = detail_text
+                elif 'Recámara' in label_text or 'Recamara' in label_text:
+                    try:
+                        details['bedrooms'] = int(detail_text)
+                    except:
+                        details['bedrooms'] = detail_text
+                elif 'Baño' in label_text:
+                    try:
+                        details['bathrooms'] = int(detail_text)
+                    except:
+                        details['bathrooms'] = detail_text
+                elif 'Parking' in label_text:
+                    details['parking'] = detail_text
+                elif 'Piscina' in label_text:
+                    details['pool'] = detail_text
+                elif 'Piso' in label_text:
+                    details['floor'] = detail_text
+                else:
+                    # Store any other detail
+                    clean_label = label_text.replace(':', '').strip()
+                    details[clean_label.lower()] = detail_text
+        
+        return details
+    
+    def extract_all_text(self, soup: BeautifulSoup) -> str:
+        """Extract ALL relevant visible text from the page, organized by sections."""
+        sections = []
+        
+        # 1. Title/Header
+        title = soup.find('h1')
+        if title:
+            sections.append(f"TÍTULO: {title.get_text(strip=True)}")
+        
+        # 2. Property Details Section (d3-property-details__content)
+        details_section = soup.find('div', class_='d3-property-details__content')
+        if details_section:
+            details_text = []
+            labels = details_section.find_all('div', class_='d3-property-details__detail-label')
+            for label in labels:
+                label_text = label.get_text(strip=True)
+                detail = label.find('p', class_='d3-property-details__detail')
+                if detail:
+                    detail_text = detail.get_text(strip=True)
+                    details_text.append(f"{label_text} {detail_text}")
+            if details_text:
+                sections.append("DETALLES:\n" + "\n".join(details_text))
+        
+        # 3. Description (d3-property-about__text)
+        description = soup.find('div', class_='d3-property-about__text')
+        if description:
+            desc_text = description.get_text(strip=True)
+            if desc_text:
+                sections.append(f"DESCRIPCIÓN:\n{desc_text}")
+        
+        # 4. Amenities/Features section
+        amenities_section = soup.find('div', class_='d3-property-features')
+        if amenities_section:
+            amenities = amenities_section.find_all('li')
+            if amenities:
+                amenity_list = [li.get_text(strip=True) for li in amenities]
+                sections.append("AMENIDADES:\n" + "\n".join(amenity_list))
+        
+        # 5. Location information
+        location = soup.find('div', class_='d3-property-location')
+        if location:
+            loc_text = location.get_text(strip=True)
+            if loc_text:
+                sections.append(f"UBICACIÓN:\n{loc_text}")
+        
+        # Join all sections with clear separators
+        return "\n\n".join(sections)
+    
+    def extract_construction_stage(self, soup: BeautifulSoup) -> Optional[str]:
+        """Extract construction stage from timeline."""
+        timeline = soup.find('div', class_='d3-new-property-stage__time-line')
+        if not timeline:
+            return None
+        
+        # Find all active stages
+        active_items = timeline.find_all('div', class_='d3-new-property-stage__time-line-item--active')
+        
+        if active_items:
+            # Get the last active stage
+            last_active = active_items[-1]
+            label = last_active.find('p', class_='d3-new-property-stage__time-line-label')
+            if label:
+                return label.get_text(strip=True)
+        
+        return None
+    
+    def enhance_with_ai(self, full_text: str, construction_stage: str) -> dict:
+        """Use OpenAI to process clean text and extract ALL fields."""
+        try:
+            api_key = settings.OPENAI_API_KEY
+            if not api_key:
+                print("⚠️ OpenAI API key not configured, skipping AI enhancement")
+                return {}
+            
+            client = openai.OpenAI(api_key=api_key)
+            
+            # Limit text to reasonable size (GPT-4o-mini can handle this easily)
+            text_to_process = full_text[:8000] if len(full_text) > 8000 else full_text
+            
+            # Add construction stage to context
+            context = f"""{text_to_process}
+
+ETAPA DE CONSTRUCCIÓN: {construction_stage or 'No especificada'}
+"""
+            
+            # Save text to file for inspection
+            try:
+                with open('ai_input_text.txt', 'w', encoding='utf-8') as f:
+                    f.write(context)
+                print(f"💾 Texto guardado en: ai_input_text.txt ({len(context)} caracteres)")
+            except Exception as e:
+                print(f"⚠️ No se pudo guardar archivo: {e}")
+            
+            prompt = """Analyze the real estate property information and extract/normalize the following fields in JSON format:
+
+{
+  "title": "Property name or descriptive title (max 100 chars)",
+  "price_usd": <numeric price in USD>,
+  "bedrooms": <number or null>,
+  "bathrooms": <number or null>,
+  "area_m2": <number or null>,
+  "lot_size_m2": <number or null>,
+  "property_type": "Casa|Apartamento|Terreno|Lote|Condominio|etc",
+  "listing_type": "sale|rent",
+  "location": "City, Province, Country",
+  "amenities": ["amenity1", "amenity2", ...],
+  "parking_spaces": <number or null>,
+  "pool": <boolean>,
+  "description": "Professional property description (2-3 sentences, max 500 chars)",
+  "model": "Property model if mentioned",
+  "construction_stage": "Planos|Preventa|En construcción|Listo"
+}
+
+CRITICAL INSTRUCTIONS:
+
+TITLE:
+- Extract the actual property/project NAME from the description (e.g., "A'Mar", "Vista del Mar", "Residencial Los Sueños")
+- If there's a project name, use format: "ProjectName - Property Type in Location"
+- Example: "A'Mar - Condominio en Jacó" NOT "Agendar una visita virtual"
+- If no project name, use: "Property Type in Location" (e.g., "Apartamento en San José")
+- Keep it concise and descriptive (max 100 chars)
+
+DESCRIPTION:
+- Write a professional, concise summary highlighting key selling points
+- Include: property name/type, location, size, main features, unique aspects
+- Focus on what makes this property attractive to buyers/renters
+- Use complete sentences, proper grammar
+- 2-3 sentences maximum (around 300-500 characters)
+- Example: "A'Mar is an exclusive 20-story beachfront condominium in Jacó offering 2-bedroom apartments from $179,000. Features resort-style amenities including pools, gym, pickleball court, and 24/7 security. Prime location steps from the beach with stunning ocean views."
+
+PRICE:
+- Extract the REAL sale/rent price (NOT price per m²)
+- Format "179'000" or "179,000" → convert to 179000
+- Ignore "Precio / m²" values
+
+OTHER FIELDS:
+- Parse bedrooms/bathrooms as integers
+- Extract ALL amenities mentioned (pool, gym, parking, security, BBQ area, etc.)
+- Use location from "Localización" field
+- Identify property type from "Categoria" or description
+"""
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a real estate data extraction expert. Extract and normalize property information accurately. Always return valid JSON."},
+                    {"role": "user", "content": f"{prompt}\n\n{context}"}
+                ],
+                temperature=0,
+                max_tokens=1500,
+                response_format={"type": "json_object"}
+            )
+            
+            import json
+            ai_data = json.loads(response.choices[0].message.content)
+            
+            # Convert AI response to expected format
+            cleaned_data = {}
+            
+            if ai_data.get('title'):
+                cleaned_data['title'] = ai_data['title']
+            
+            if ai_data.get('price_usd'):
+                try:
+                    cleaned_data['price_usd'] = Decimal(str(ai_data['price_usd']))
+                except:
+                    pass
+            
+            if ai_data.get('bedrooms'):
+                try:
+                    cleaned_data['bedrooms'] = int(ai_data['bedrooms'])
+                except:
+                    pass
+            
+            if ai_data.get('bathrooms'):
+                try:
+                    cleaned_data['bathrooms'] = Decimal(str(ai_data['bathrooms']))
+                except:
+                    pass
+            
+            if ai_data.get('area_m2'):
+                try:
+                    cleaned_data['area_m2'] = Decimal(str(ai_data['area_m2']))
+                except:
+                    pass
+            
+            if ai_data.get('lot_size_m2'):
+                try:
+                    cleaned_data['lot_size_m2'] = Decimal(str(ai_data['lot_size_m2']))
+                except:
+                    pass
+            
+            if ai_data.get('property_type'):
+                cleaned_data['property_type'] = ai_data['property_type']
+            
+            if ai_data.get('listing_type'):
+                cleaned_data['listing_type'] = ai_data['listing_type']
+            
+            if ai_data.get('location'):
+                cleaned_data['location'] = ai_data['location']
+            
+            if ai_data.get('amenities') and isinstance(ai_data['amenities'], list):
+                cleaned_data['amenities'] = ai_data['amenities']
+            
+            if ai_data.get('parking_spaces'):
+                try:
+                    cleaned_data['parking_spaces'] = int(ai_data['parking_spaces'])
+                except:
+                    pass
+            
+            if ai_data.get('description'):
+                cleaned_data['description'] = ai_data['description']
+            
+            print(f"✅ AI enhanced data: {len(cleaned_data)} fields extracted")
+            return cleaned_data
+            
+        except Exception as e:
+            print(f"❌ AI enhancement error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {}
+    
+    def _dict_to_text(self, d: dict) -> str:
+        """Convert dict to readable text format."""
+        lines = []
+        for key, value in d.items():
+            lines.append(f"{key}: {value}")
+        return "\n".join(lines)
     
     def extract_title(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract property title from Encuentra24."""

@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from decimal import Decimal
 import re
 import openai
+import json
 from django.conf import settings
 from .base import BaseExtractor
 
@@ -16,6 +17,223 @@ class ColdwellBankerExtractor(BaseExtractor):
     def __init__(self):
         super().__init__()
         self.site_name = "coldwellbankercostarica.com"
+    
+    def extract(self, html: str, url: Optional[str] = None) -> dict:
+        """
+        Override extract to use AI enhancement with clean text extraction.
+        This reduces token usage by 98%+ and improves data quality.
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Extract clean text from key sections
+        text_content = self.extract_all_text(soup)
+        
+        # Log character count reduction
+        original_chars = len(html)
+        text_chars = len(text_content)
+        reduction_pct = ((original_chars - text_chars) / original_chars * 100) if original_chars > 0 else 0
+        print(f"📝 Texto limpio extraído: {text_chars} caracteres (vs {original_chars} chars HTML) - {reduction_pct:.1f}% reducción")
+        
+        # Save to file for inspection
+        try:
+            with open('ai_input_text.txt', 'w', encoding='utf-8') as f:
+                f.write(text_content)
+            print(f"💾 Texto guardado en: ai_input_text.txt")
+        except Exception as e:
+            print(f"⚠️ Error guardando texto: {e}")
+        
+        # Enhance with AI
+        enhanced_data = self.enhance_with_ai(text_content)
+        
+        if enhanced_data:
+            return enhanced_data
+        
+        # Fallback to base extraction if AI fails
+        print("⚠️ AI enhancement failed, falling back to base extraction")
+        return super().extract(html)
+    
+    def extract_all_text(self, soup: BeautifulSoup) -> str:
+        """
+        Extract clean, structured text from key sections of Coldwell Banker pages.
+        """
+        sections = []
+        
+        # 1. TÍTULO Y PRECIO
+        title_wrap = soup.find('div', class_='title-wrap')
+        if title_wrap:
+            sections.append("=== TÍTULO Y PRECIO ===")
+            sections.append(title_wrap.get_text(separator='\n', strip=True))
+            sections.append("")
+        
+        # 2. ESPECIFICACIONES (bedrooms, bathrooms, area, lot size)
+        ul_specs = soup.find('ul', class_='ul-specs')
+        if ul_specs:
+            sections.append("=== ESPECIFICACIONES ===")
+            for li in ul_specs.find_all('li'):
+                spec_text = li.get_text(strip=True)
+                if spec_text:
+                    sections.append(spec_text)
+            sections.append("")
+        
+        # 3. MÁS DETALLES (additional specifications)
+        more_details = soup.find('div', class_='more-details')
+        if more_details:
+            sections.append("=== MÁS DETALLES ===")
+            sections.append(more_details.get_text(separator='\n', strip=True))
+            sections.append("")
+        
+        # 4. DESCRIPCIÓN COMPLETA
+        desc_wrap = soup.find('div', class_='desc-wrap')
+        if desc_wrap:
+            sections.append("=== DESCRIPCIÓN ===")
+            # Try complete description first
+            desc_complete = desc_wrap.find('div', class_='desc-content-complete')
+            if desc_complete:
+                # Remove read-toggle links
+                for link in desc_complete.find_all('a', class_='read-toggle'):
+                    link.decompose()
+                sections.append(desc_complete.get_text(separator='\n', strip=True))
+            else:
+                # Fallback to any desc-content
+                desc_content = desc_wrap.find('div', class_='desc-content')
+                if desc_content:
+                    for link in desc_content.find_all('a', class_='read-toggle'):
+                        link.decompose()
+                    sections.append(desc_content.get_text(separator='\n', strip=True))
+            sections.append("")
+        
+        # 5. CARACTERÍSTICAS/AMENIDADES
+        features_section = soup.find('div', class_='property-features')
+        if features_section:
+            sections.append("=== CARACTERÍSTICAS ===")
+            for li in features_section.find_all('li'):
+                feature = li.get_text(strip=True)
+                if feature:
+                    sections.append(f"• {feature}")
+            sections.append("")
+        
+        # 6. UBICACIÓN
+        # Try h3 tags with location info
+        for section in soup.find_all('section'):
+            for h3 in section.find_all('h3'):
+                text = h3.get_text(strip=True)
+                if 'ubicación:' in text.lower() or 'location:' in text.lower():
+                    sections.append("=== UBICACIÓN ===")
+                    sections.append(text)
+                    sections.append("")
+                    break
+        
+        return '\n'.join(sections)
+    
+    def enhance_with_ai(self, text_content: str) -> Optional[dict]:
+        """
+        Use OpenAI to extract and enhance property data from clean text.
+        """
+        try:
+            api_key = settings.OPENAI_API_KEY
+            if not api_key:
+                print("⚠️ No OpenAI API key configured")
+                return None
+            
+            client = openai.OpenAI(api_key=api_key)
+            
+            prompt = f"""Eres un experto en extracción de datos de bienes raíces de Costa Rica.
+
+Analiza el siguiente texto extraído de una propiedad en Coldwell Banker Costa Rica y extrae toda la información posible.
+
+INSTRUCCIONES IMPORTANTES:
+
+1. **Precio (price_usd)**: MUY IMPORTANTE - Busca el precio en la sección "TÍTULO Y PRECIO"
+   - El precio aparece en formato: $1,750,000 o $750,000
+   - Extrae SOLO los números sin símbolos ($), sin comas (,), sin puntos decimales
+   - Ejemplo: si ves "$1,750,000" → extrae "1750000"
+   - Ejemplo: si ves "$750,000" → extrae "750000"
+   - Si NO encuentras precio, usa null
+
+2. **Título profesional**: Genera un título atractivo y profesional en ESPAÑOL que resuma la propiedad. 
+   - Para terrenos: Incluye el tamaño y ubicación (ej: "Terreno Comercial de 360 m² en Curridabat")
+   - Para casas/apartamentos: Incluye tipo, tamaño, y ubicación (ej: "Casa de Lujo de 250 m² en Escazú")
+   - NO uses el título exacto del sitio web si es muy largo o poco claro
+
+3. **Descripción profesional**: Genera UNA descripción profesional en ESPAÑOL de 3-4 oraciones que sintetice toda la información clave:
+   - Características principales (tamaño, ubicación, zonificación si es terreno)
+   - Características únicas o especiales (zonificación comercial, acceso a transporte público, ubicación estratégica)
+   - Potencial de desarrollo o uso
+   - Condiciones especiales (muros perimetrales, edificaciones existentes, etc.)
+   - NO copies y pegues toda la descripción del sitio - sintetiza lo más importante
+
+4. **Tamaño del lote (lot_size_m2)**: MUY IMPORTANTE para terrenos
+   - Busca términos: "superficie", "área del terreno", "lot size", "lote de", "terreno de"
+   - Convierte unidades: 1 acre = 4046.86 m², 1 sqft = 0.092903 m², 1 hectárea = 10000 m²
+   - Si encuentras el área de construcción Y el área del lote, usa el área del lote para lot_size_m2
+   - Para terrenos SIN construcción, lot_size_m2 y area_m2 pueden ser el mismo valor
+
+5. **Área construida (area_m2)**: Área de construcción o edificación
+   - Para terrenos SIN construcción, puede ser null o igual a lot_size_m2 si no se especifica
+   - Convierte sqft a m² si es necesario
+
+6. **Tipo de propiedad (property_type)**: "Terreno", "Casa", "Apartamento", "Condominio", "Lote", etc.
+
+7. **Estado del listado (listing_type)**: Siempre "Venta" para Coldwell Banker (es un sitio de ventas)
+
+8. **Zonificación**: Para terrenos, extrae información de uso de suelo (Comercial, Residencial de Baja Densidad, etc.)
+
+9. **Amenidades**: Lista TODO lo que encuentres en características/amenidades
+
+TEXTO A ANALIZAR:
+{text_content}
+
+Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin ```json):
+{{
+  "title": "Título profesional en español",
+  "price_usd": "solo el número sin símbolos ni comas",
+  "property_type": "Terreno/Casa/Apartamento/etc",
+  "listing_type": "Venta",
+  "location": "ciudad, provincia",
+  "city": "ciudad",
+  "province": "provincia",
+  "country": "Costa Rica",
+  "bedrooms": número o null,
+  "bathrooms": número decimal o null,
+  "area_m2": número decimal (área construida) o null,
+  "lot_size_m2": número decimal (área del lote/terreno) o null,
+  "parking_spaces": número o null,
+  "description": "descripción profesional de 3-4 oraciones en español",
+  "amenities": ["lista", "de", "amenidades"]
+}}"""
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "Eres un experto en extracción de datos de bienes raíces. Respondes ÚNICAMENTE con JSON válido, sin markdown."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0,
+                max_tokens=1500
+            )
+            
+            content = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = content.split('```')[1]
+                if content.startswith('json'):
+                    content = content[4:]
+                content = content.strip()
+            
+            data = json.loads(content)
+            
+            print(f"✅ AI enhancement successful: {len(data)} campos extraídos")
+            
+            return data
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parsing AI response as JSON: {e}")
+            print(f"Response content: {content[:500]}")
+            return None
+        except Exception as e:
+            print(f"❌ Error in AI enhancement: {e}")
+            return None
     
     def extract_title(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract property title."""

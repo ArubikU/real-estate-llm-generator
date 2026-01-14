@@ -138,6 +138,20 @@ export interface Translations {
     propertyId: string;
     errorSaving: string;
     sureDeleteAll: string;
+    // Instructions
+    howToUse: string;
+    step1Title: string;
+    step1Desc: string;
+    step2Title: string;
+    step2Desc: string;
+    step3Title: string;
+    step3Desc: string;
+    step4Title: string;
+    step4Desc: string;
+    tips: string;
+    tip1: string;
+    tip2: string;
+    tip3: string;
   };
   
   // Chatbot
@@ -311,6 +325,20 @@ export const translations: Record<Language, Translations> = {
       propertyId: 'ID de Propiedad:',
       errorSaving: 'Error al guardar la propiedad:',
       sureDeleteAll: '¿Estás seguro de que deseas eliminar todas las propiedades guardadas?',
+      // Instructions
+      howToUse: '¿Cómo usar el colector?',
+      step1Title: '1. Copia el enlace',
+      step1Desc: 'Ve al sitio web de bienes raíces y copia la URL completa de la propiedad',
+      step2Title: '2. Pega aquí',
+      step2Desc: 'Pega el enlace en el campo de "URL de la Propiedad" de abajo',
+      step3Title: '3. Procesa',
+      step3Desc: 'Haz clic en "Procesar Propiedad" y espera 10-30 segundos',
+      step4Title: '4. Revisa y guarda',
+      step4Desc: 'Verifica que los datos extraídos sean correctos y guarda en la base de datos',
+      tips: '💡 Consejos útiles',
+      tip1: 'Usa URLs individuales de propiedades, no páginas de búsqueda',
+      tip2: 'Si sale error, verifica que el enlace esté completo y correcto',
+      tip3: 'Las propiedades duplicadas no se guardarán automáticamente',
     },
     chatbot: {
       welcome: `¡Hola! Soy tu asistente de Kelly Properties. Puedo ayudarte a encontrar la propiedad perfecta en Costa Rica. ¿Qué estás buscando?
@@ -481,6 +509,20 @@ Puedes preguntar sobre:
       propertyId: 'Property ID:',
       errorSaving: 'Error saving property:',
       sureDeleteAll: 'Are you sure you want to delete all saved properties?',
+      // Instructions
+      howToUse: 'How to use the collector?',
+      step1Title: '1. Copy the link',
+      step1Desc: 'Go to the real estate website and copy the full property URL',
+      step2Title: '2. Paste here',
+      step2Desc: 'Paste the link in the "Property URL" field below',
+      step3Title: '3. Process',
+      step3Desc: 'Click "Process Property" and wait 10-30 seconds',
+      step4Title: '4. Review and save',
+      step4Desc: 'Verify the extracted data is correct and save to database',
+      tips: '💡 Useful tips',
+      tip1: 'Use individual property URLs, not search pages',
+      tip2: 'If you get an error, verify the link is complete and correct',
+      tip3: 'Duplicate properties will not be saved automatically',
     },
     chatbot: {
       welcome: `Hello! I'm your Kelly Properties assistant. I can help you find the perfect property in Costa Rica. What are you looking for?

@@ -28,6 +28,16 @@ const Icons = {
       <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>
     </svg>
   ),
+  batch: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+    </svg>
+  ),
+  sheets: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.5 2h-15A2.5 2.5 0 002 4.5v15A2.5 2.5 0 004.5 22h15a2.5 2.5 0 002.5-2.5v-15A2.5 2.5 0 0019.5 2zM7 6h10v2H7V6zm10 10H7v-2h10v2zm0-4H7v-2h10v2z"/>
+    </svg>
+  ),
 };
 
 export default function Header() {
@@ -47,6 +57,18 @@ export default function Header() {
             className={`nav-link ${location.pathname === '/data-collector' ? 'active' : ''}`}
           >
             <Icons.chart /> {t.header.dataCollector}
+          </Link>
+          <Link 
+            to="/batch-processing" 
+            className={`nav-link ${location.pathname === '/batch-processing' ? 'active' : ''}`}
+          >
+            <Icons.batch /> Lote
+          </Link>
+          <Link 
+            to="/google-sheets" 
+            className={`nav-link ${location.pathname === '/google-sheets' ? 'active' : ''}`}
+          >
+            <Icons.sheets /> Google Sheets
           </Link>
           <Link 
             to="/chatbot" 

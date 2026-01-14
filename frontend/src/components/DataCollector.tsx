@@ -3,6 +3,7 @@ import './DataCollector.css'
 import { ProgressBar } from './ProgressBar'
 import { useProgressWebSocket } from '../hooks/useProgressWebSocket'
 import { useLanguage } from '../contexts/LanguageContext'
+import TutorialOverlay from './Tutorial/TutorialOverlay'
 
 interface PropertyData {
   id?: string
@@ -73,6 +74,13 @@ function App() {
   const [websitesLoading, setWebsitesLoading] = useState(true)
   const [propertiesProcessedToday, setPropertiesProcessedToday] = useState<number>(0)
   const [recentProperties, setRecentProperties] = useState<RecentProperty[]>([])
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null)
+  const [showTutorialButton, setShowTutorialButton] = useState(true)
+  const [highlightPositions, setHighlightPositions] = useState<{
+    websiteSection?: DOMRect;
+    urlInput?: DOMRect;
+    processButton?: DOMRect;
+  }>({})
 
   // WebSocket progress tracking
   const { progress, isConnected, connect, disconnect, reset } = useProgressWebSocket({
@@ -193,6 +201,48 @@ function App() {
     } catch (error) {
       console.error('Error loading ingestion stats:', error)
     }
+  }
+
+  const startTutorial = () => {
+    setTutorialStep(1)
+    setShowTutorialButton(false)
+    // Calculate positions after state updates
+    setTimeout(calculateHighlightPositions, 100)
+  }
+
+  const nextTutorialStep = () => {
+    if (tutorialStep !== null && tutorialStep < 4) {
+      setTutorialStep(tutorialStep + 1)
+      setTimeout(calculateHighlightPositions, 100)
+    } else {
+      setTutorialStep(null)
+      setShowTutorialButton(true)
+    }
+  }
+
+  const skipTutorial = () => {
+    setTutorialStep(null)
+    setShowTutorialButton(true)
+  }
+
+  const calculateHighlightPositions = () => {
+    const websiteSection = document.getElementById('websiteSourceSelector')
+    const urlInput = document.getElementById('propertyUrlInput')
+    const processButton = document.getElementById('processPropertyButton')
+    
+    const positions: any = {}
+    
+    if (websiteSection) {
+      positions.websiteSection = websiteSection.getBoundingClientRect()
+    }
+    if (urlInput) {
+      positions.urlInput = urlInput.getBoundingClientRect()
+    }
+    if (processButton) {
+      positions.processButton = processButton.getBoundingClientRect()
+    }
+    
+    setHighlightPositions(positions)
   }
   
   const loadSupportedWebsites = async () => {
@@ -539,7 +589,7 @@ function App() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-6 py-8 max-w-5xl">
+        <div className="container mx-auto px-6 py-8">
           {/* Header */}
           <header className="mb-8">
             <div className="flex items-center justify-between">
@@ -577,6 +627,39 @@ function App() {
             </div>
           </header>
 
+          {/* Instructions Section - Interactive Tutorial Button */}
+          {!showResults && !loading && showTutorialButton && (
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 mb-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 rounded-full p-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">¿Primera vez usando el colector?</h3>
+                    <p className="text-sm text-blue-100">Sigue el tutorial interactivo paso a paso</p>
+                  </div>
+                </div>
+                <button
+                  onClick={startTutorial}
+                  className="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg"
+                >
+                  🎯 Iniciar Tutorial
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Tutorial Overlay */}
+          <TutorialOverlay
+            tutorialStep={tutorialStep}
+            highlightPositions={highlightPositions}
+            onNext={nextTutorialStep}
+            onSkip={skipTutorial}
+          />
+
           {/* Recent Properties Section */}
           {recentProperties.length > 0 && !showResults && (
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -586,7 +669,7 @@ function App() {
                 </svg>
                 {t.dataCollector.recentProperties || 'Últimas Propiedades Agregadas'}
               </h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {recentProperties.map((prop) => {
                   const timeAgo = new Date(prop.created_at).toLocaleString('es-ES', {
                     day: '2-digit',
@@ -598,16 +681,21 @@ function App() {
                   return (
                     <div 
                       key={prop.id} 
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow bg-white"
                     >
-                      <div className="flex justify-between items-start gap-4">
+                      <div className="flex flex-col gap-3">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-800 truncate mb-1" title={prop.title}>
+                          <h3 className="font-semibold text-gray-800 truncate mb-2" title={prop.title}>
                             {prop.title}
                           </h3>
-                          <p className="text-sm text-gray-600 mb-2">
-                            📍 {prop.location}
-                          </p>
+                          <div className="flex items-center gap-4 text-sm mb-2">
+                            <p className="text-gray-600 flex items-center gap-1">
+                              📍 {prop.location}
+                            </p>
+                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              {prop.source_website}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             {prop.bedrooms && (
                               <span className="flex items-center gap-1">
@@ -619,13 +707,10 @@ function App() {
                                 🚿 {prop.bathrooms}
                               </span>
                             )}
-                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                              {prop.source_website}
-                            </span>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-lg font-bold text-blue-600 mb-1">
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                          <div className="text-lg font-bold text-blue-600">
                             {prop.price_usd ? `$${prop.price_usd.toLocaleString()}` : 'N/A'}
                           </div>
                           <div className="text-xs text-gray-400">
@@ -674,7 +759,7 @@ function App() {
               </div>
 
               {/* Website Source Selector */}
-              <div className="mb-4">
+              <div className="mb-4" id="websiteSourceSelector">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t.dataCollector.sourceWebsite} {websitesLoading && <span className="text-xs text-gray-400">({t.dataCollector.loading})</span>}
                 </label>
@@ -690,7 +775,7 @@ function App() {
                     </option>
                   ))}
                 </select>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2" id="supportedWebsiteLinks">
                   {supportedWebsites.filter(w => w.url).map(website => (
                     <a 
                       key={website.id}
@@ -720,11 +805,12 @@ function App() {
 
               {/* URL Input */}
               {inputType === 'url' && (
-                <div className="mb-4">
+                <div className="mb-4" id="urlInputContainer">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t.dataCollector.propertyUrl}
                   </label>
                   <input 
+                    id="propertyUrlInput"
                     type="url" 
                     value={url}
                     onChange={(e) => {
@@ -754,6 +840,7 @@ function App() {
               )}
 
               <button 
+                id="processPropertyButton"
                 onClick={processProperty}
                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold flex items-center justify-center gap-2"
               >

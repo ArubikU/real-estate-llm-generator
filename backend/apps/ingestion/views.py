@@ -25,6 +25,8 @@ from apps.properties.models import Property, PropertyImage
 from apps.properties.serializers import PropertyDetailSerializer
 from .serializers import SupportedWebsiteSerializer
 from .progress import ProgressTracker
+from .google_sheets import GoogleSheetsService, process_sheet_batch
+from .email_notifications import send_batch_completion_email, send_error_notification
 
 logger = logging.getLogger(__name__)
 
@@ -532,6 +534,7 @@ class IngestBatchView(APIView):
         
         urls = request.data.get('urls', [])
         run_async = request.data.get('async', False)
+        results_sheet_id = request.data.get('results_sheet_id')
         
         if not urls or not isinstance(urls, list):
             return Response(
@@ -539,9 +542,9 @@ class IngestBatchView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if len(urls) > 10:
+        if len(urls) > 50:
             return Response(
-                {'error': 'Maximum 10 URLs per batch'},
+                {'error': 'Maximum 50 URLs per batch'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -573,6 +576,19 @@ class IngestBatchView(APIView):
         
         else:
             # Process synchronously
+            from apps.ingestion.google_sheets import GoogleSheetsService
+            
+            # Initialize Google Sheets service if results_sheet_id provided
+            sheets_service = None
+            if results_sheet_id:
+                try:
+                    credentials_path = os.getenv('GOOGLE_SHEETS_CREDENTIALS_PATH', 
+                                                  'credentials/google-sheets-credentials.json')
+                    sheets_service = GoogleSheetsService(credentials_path)
+                    logger.info(f"Google Sheets service initialized for results sheet: {results_sheet_id}")
+                except Exception as e:
+                    logger.error(f"Failed to initialize Google Sheets service: {e}")
+            
             results = []
             for url in urls:
                 try:
@@ -589,23 +605,69 @@ class IngestBatchView(APIView):
                     
                     property_obj = Property.objects.create(**extracted_data)
                     
-                    results.append({
+                    result = {
                         'url': url,
                         'status': 'success',
                         'property_id': str(property_obj.id)
-                    })
+                    }
+                    results.append(result)
+                    
+                    # Write to Google Sheets if service is available
+                    if sheets_service and results_sheet_id:
+                        try:
+                            result_row_data = {
+                                'url': url,
+                                'property_data': {
+                                    'title': extracted_data.get('title', ''),
+                                    'price': extracted_data.get('price_usd'),
+                                    'bedrooms': extracted_data.get('bedrooms'),
+                                    'bathrooms': extracted_data.get('bathrooms'),
+                                    'area': extracted_data.get('square_meters'),
+                                    'location': extracted_data.get('location', ''),
+                                    'property_type': extracted_data.get('property_type', ''),
+                                },
+                                'status': 'Procesado',
+                                'notes': f"Property ID: {str(property_obj.id)}",
+                                'property_id': str(property_obj.id)
+                            }
+                            sheets_service.append_result_row(results_sheet_id, result_row_data)
+                        except Exception as e:
+                            logger.error(f"Failed to write to Google Sheets: {e}")
                     
                 except Exception as e:
-                    results.append({
+                    result = {
                         'url': url,
                         'status': 'failed',
                         'error': str(e)
-                    })
+                    }
+                    results.append(result)
+                    
+                    # Write error to Google Sheets if service is available
+                    if sheets_service and results_sheet_id:
+                        try:
+                            error_row_data = {
+                                'url': url,
+                                'property_data': {},
+                                'status': 'Error',
+                                'notes': str(e),
+                                'property_id': ''
+                            }
+                            sheets_service.append_result_row(results_sheet_id, error_row_data)
+                        except Exception as sheet_error:
+                            logger.error(f"Failed to write error to Google Sheets: {sheet_error}")
             
-            return Response({
+            response_data = {
                 'status': 'completed',
                 'results': results
-            }, status=status.HTTP_200_OK)
+            }
+            
+            if results_sheet_id:
+                response_data['results_spreadsheet'] = {
+                    'spreadsheet_id': results_sheet_id,
+                    'spreadsheet_url': f'https://docs.google.com/spreadsheets/d/{results_sheet_id}/edit'
+                }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class SavePropertyView(APIView):
@@ -902,3 +964,531 @@ class GenerateEmbeddingsView(APIView):
                 {'error': f'Failed to generate embeddings: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ProcessGoogleSheetView(APIView):
+    """
+    Endpoint to process properties from a Google Sheet.
+    
+    POST /ingest/google-sheet/
+    {
+        "spreadsheet_id": "1abc...",
+        "notify_email": "assistant@example.com",
+        "async": true
+    }
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Process properties from Google Sheet."""
+        import uuid
+        
+        spreadsheet_id = request.data.get('spreadsheet_id')
+        notify_email = request.data.get('notify_email')
+        run_async = request.data.get('async', True)
+        create_results_sheet = request.data.get('create_results_sheet', False)
+        results_sheet_id = request.data.get('results_sheet_id')
+        
+        # Generate unique task ID for WebSocket tracking
+        task_id = str(uuid.uuid4())
+        
+        if not spreadsheet_id:
+            return Response(
+                {'error': 'spreadsheet_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not notify_email:
+            return Response(
+                {'error': 'notify_email is required for notifications'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Define processing callback with progress updates
+        def process_url(url: str, index: int = 0, total: int = 1):
+            """Process a single URL and return success status."""
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            
+            channel_layer = get_channel_layer()
+            
+            try:
+                # Send progress update: Starting scraping
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'progress_{task_id}',
+                        {
+                            'type': 'progress_update',
+                            'progress': int((index / total) * 100),
+                            'status': 'scraping',
+                            'message': f'Scraping property {index + 1}/{total}...',
+                            'stage': 'scraping',
+                            'step': index + 1,
+                            'total_steps': total,
+                            'url': url
+                        }
+                    )
+                
+                scraped_data = scrape_url(url)
+                
+                if not scraped_data.get('success'):
+                    if channel_layer:
+                        async_to_sync(channel_layer.group_send)(
+                            f'progress_{task_id}',
+                            {
+                                'type': 'task_error',
+                                'message': f'Failed to scrape: {url}',
+                                'error': 'Scraping failed'
+                            }
+                        )
+                    return False, {'error': 'Failed to scrape URL'}
+                
+                # Send progress update: Extracting data
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'progress_{task_id}',
+                        {
+                            'type': 'progress_update',
+                            'progress': int(((index + 0.5) / total) * 100),
+                            'status': 'extracting',
+                            'message': f'Extracting data {index + 1}/{total}...',
+                            'stage': 'extracting',
+                            'step': index + 1,
+                            'total_steps': total
+                        }
+                    )
+                
+                html_content = scraped_data.get('html', scraped_data.get('text', ''))
+                extracted_data = extract_property_data(html_content, url=url)
+                
+                # Set tenant
+                if request.user.is_authenticated:
+                    extracted_data['tenant'] = request.user.tenant
+                else:
+                    extracted_data['tenant'] = Tenant.objects.first()
+                
+                extracted_data['user_roles'] = ['buyer', 'staff', 'admin']
+                
+                # Clean metadata
+                metadata_fields = ['tokens_used', 'raw_html', 'confidence_reasoning', 
+                                 'extracted_at', 'field_confidence']
+                for field in metadata_fields:
+                    extracted_data.pop(field, None)
+                
+                evidence_fields = [key for key in extracted_data.keys() if key.endswith('_evidence')]
+                for field in evidence_fields:
+                    extracted_data.pop(field, None)
+                
+                # Send progress update: Saving to database
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'progress_{task_id}',
+                        {
+                            'type': 'progress_update',
+                            'progress': int(((index + 0.75) / total) * 100),
+                            'status': 'saving',
+                            'message': f'Saving property {index + 1}/{total}...',
+                            'stage': 'saving',
+                            'step': index + 1,
+                            'total_steps': total
+                        }
+                    )
+                
+                # Create or update property
+                tenant = extracted_data.get('tenant')
+                source_url = extracted_data.get('source_url')
+                
+                # Try to find existing property
+                existing_property = Property.objects.filter(
+                    tenant=tenant,
+                    source_url=source_url
+                ).first()
+                
+                if existing_property:
+                    # Update existing property
+                    logger.info(f"Property already exists (ID: {existing_property.id}), updating...")
+                    for key, value in extracted_data.items():
+                        if key not in ['id', 'tenant', 'created_at']:
+                            setattr(existing_property, key, value)
+                    existing_property.save()
+                    property_obj = existing_property
+                else:
+                    # Create new property
+                    property_obj = Property.objects.create(**extracted_data)
+                
+                # Send progress update: Complete for this property
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'progress_{task_id}',
+                        {
+                            'type': 'progress_update',
+                            'progress': int(((index + 1) / total) * 100),
+                            'status': 'completed',
+                            'message': f'Completed property {index + 1}/{total}',
+                            'stage': 'completed',
+                            'step': index + 1,
+                            'total_steps': total
+                        }
+                    )
+                
+                return True, {
+                    'property_id': str(property_obj.id),
+                    'title': extracted_data.get('title', ''),
+                    'price_usd': extracted_data.get('price_usd'),
+                    'bedrooms': extracted_data.get('bedrooms'),
+                    'bathrooms': extracted_data.get('bathrooms'),
+                    'square_meters': extracted_data.get('square_meters'),
+                    'location': extracted_data.get('location'),
+                    'property_type': extracted_data.get('property_type', '')
+                }
+                
+            except Exception as e:
+                logger.error(f"Error processing URL {url}: {e}")
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'progress_{task_id}',
+                        {
+                            'type': 'task_error',
+                            'message': f'Error processing {url}',
+                            'error': str(e)
+                        }
+                    )
+                return False, {'error': str(e)}
+        
+        if run_async:
+            # Process asynchronously
+            from apps.ingestion.tasks import process_google_sheet_task
+            
+            task = process_google_sheet_task.delay(
+                spreadsheet_id=spreadsheet_id,
+                notify_email=notify_email,
+                task_id=task_id,
+                create_results_sheet=create_results_sheet,
+                results_sheet_id=results_sheet_id
+            )
+            
+            response_data = {
+                'status': 'queued',
+                'message': 'Google Sheet processing queued',
+                'task_id': task_id,
+                'spreadsheet_url': f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit'
+            }
+            
+            if create_results_sheet:
+                response_data['message'] += ' - Se creará un Google Sheet con los resultados'
+            
+            return Response(response_data, status=status.HTTP_202_ACCEPTED)
+        
+        else:
+            # Process synchronously
+            try:
+                results = process_sheet_batch(
+                    spreadsheet_id=spreadsheet_id,
+                    process_callback=process_url,
+                    task_id=task_id,
+                    create_results_sheet=create_results_sheet,
+                    results_sheet_id=results_sheet_id
+                )
+                
+                # Send notification email
+                admin_panel_url = request.build_absolute_uri('/admin/properties/property/')
+                send_batch_completion_email(
+                    recipient_email=notify_email,
+                    results=results,
+                    spreadsheet_id=spreadsheet_id,
+                    admin_panel_url=admin_panel_url
+                )
+                
+                response_data = {
+                    'status': 'completed',
+                    'total': results['total'],
+                    'processed': results['processed'],
+                    'failed': results['failed'],
+                    'spreadsheet_url': f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit'
+                }
+                
+                # Include results spreadsheet info if it was created
+                if 'results_spreadsheet' in results:
+                    response_data['results_spreadsheet'] = results['results_spreadsheet']
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                logger.error(f"Error processing Google Sheet: {e}", exc_info=True)
+                
+                # Send error notification
+                send_error_notification(
+                    recipient_email=notify_email,
+                    error_message=str(e),
+                    spreadsheet_id=spreadsheet_id
+                )
+                
+                return Response(
+                    {'error': f'Failed to process Google Sheet: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+
+class CreateGoogleSheetTemplateView(APIView):
+    """
+    Endpoint to create a new Google Sheet template.
+    
+    POST /ingest/create-sheet-template/
+    {
+        "title": "My Properties - January 2026"
+    }
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Create a new Google Sheet template."""
+        
+        title = request.data.get('title', 'Property Ingestion Template')
+        
+        try:
+            sheets_service = GoogleSheetsService()
+            spreadsheet_id = sheets_service.create_template_sheet(title=title)
+            
+            return Response({
+                'status': 'success',
+                'spreadsheet_id': spreadsheet_id,
+                'spreadsheet_url': f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit',
+                'message': 'Template created successfully'
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error creating Google Sheet template: {e}", exc_info=True)
+            return Response(
+                {'error': f'Failed to create template: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class CancelBatchView(APIView):
+    """
+    Endpoint to cancel ongoing batch processing.
+    
+    POST /ingest/cancel-batch/
+    {
+        "batch_id": "batch-1234567890"
+    }
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Cancel batch processing."""
+        
+        batch_id = request.data.get('batch_id')
+        
+        if not batch_id:
+            return Response(
+                {'error': 'batch_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        logger.info(f"🛑 Cancellation requested for batch: {batch_id}")
+        
+        # Try to cancel any async tasks if they exist
+        cancelled_tasks = 0
+        try:
+            from django.core.cache import cache
+            from celery import current_app
+            
+            # Get task IDs associated with this batch
+            task_ids = cache.get(f'batch_{batch_id}_tasks', [])
+            
+            if task_ids:
+                logger.info(f"Found {len(task_ids)} tasks to cancel")
+                for task_id in task_ids:
+                    try:
+                        current_app.control.revoke(task_id, terminate=True)
+                        cancelled_tasks += 1
+                        logger.info(f"Cancelled task: {task_id}")
+                    except Exception as e:
+                        logger.warning(f"Failed to cancel task {task_id}: {e}")
+                
+                # Clear the cache entry
+                cache.delete(f'batch_{batch_id}_tasks')
+            else:
+                logger.info(f"No async tasks found for batch {batch_id}")
+        
+        except ImportError:
+            # Celery not configured, which is fine for synchronous processing
+            logger.info("Celery not available, batch was processed synchronously")
+        except Exception as e:
+            logger.error(f"Error cancelling tasks: {e}", exc_info=True)
+        
+        return Response({
+            'status': 'cancelled',
+            'batch_id': batch_id,
+            'cancelled_tasks': cancelled_tasks,
+            'message': f'Batch {batch_id} cancellation processed'
+        }, status=status.HTTP_200_OK)
+
+
+class BatchExportToSheetsView(APIView):
+    """
+    Export batch results to Google Sheets.
+    
+    POST /ingest/batch-export/sheets/
+    Body: {
+        "sheet_id": "1abc...",
+        "results": [...]
+    }
+    """
+    
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        sheet_id = request.data.get('sheet_id')
+        results = request.data.get('results', [])
+        
+        if not sheet_id:
+            return Response({
+                'error': 'sheet_id is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not results:
+            return Response({
+                'error': 'No results to export'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Initialize Google Sheets service
+            sheets_service = GoogleSheetsService()
+            
+            # Prepare data rows
+            rows = []
+            for result in results:
+                rows.append([
+                    result.get('title', 'N/A'),
+                    result.get('price_usd', 'N/A'),
+                    result.get('location', 'N/A'),
+                    result.get('property_type', 'N/A'),
+                    result.get('description', 'N/A'),
+                    ', '.join(result.get('features', [])),
+                    result.get('url', 'N/A')
+                ])
+            
+            # Write to sheet
+            sheets_service.append_rows(sheet_id, 'Sheet1!A:G', rows)
+            
+            logger.info(f"✅ Exported {len(results)} properties to Google Sheets: {sheet_id}")
+            
+            return Response({
+                'status': 'success',
+                'exported_count': len(results),
+                'sheet_id': sheet_id
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error exporting to Google Sheets: {e}", exc_info=True)
+            return Response({
+                'error': str(e),
+                'message': 'Failed to export to Google Sheets'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BatchExportToDatabaseView(APIView):
+    """
+    Save batch results to database.
+    
+    POST /ingest/batch-export/database/
+    Body: {
+        "results": [...]
+    }
+    """
+    
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        results = request.data.get('results', [])
+        
+        if not results:
+            return Response({
+                'error': 'No results to save'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Get or create default tenant
+            tenant, _ = Tenant.objects.get_or_create(
+                slug='default',
+                defaults={
+                    'name': 'Default Tenant',
+                    'domain': 'http://localhost:8000',
+                    'is_active': True
+                }
+            )
+            
+            # Get or create default user
+            user, _ = CustomUser.objects.get_or_create(
+                email='admin@example.com',
+                defaults={
+                    'username': 'admin',
+                    'tenant': tenant
+                }
+            )
+            
+            saved_count = 0
+            errors = []
+            
+            for result in results:
+                try:
+                    # Check if property already exists by URL
+                    url = result.get('url', '')
+                    if url and Property.objects.filter(source_url=url, tenant=tenant).exists():
+                        logger.info(f"⏭️  Property already exists: {url}")
+                        continue
+                    
+                    # Create property with correct field names
+                    property_data = {
+                        'tenant': tenant,
+                        'property_name': result.get('title', 'Untitled Property'),
+                        'description': result.get('description', ''),
+                        'price_usd': result.get('price_usd'),
+                        'location': result.get('location', ''),
+                        'property_type': result.get('property_type', 'land'),
+                        'source_url': url,
+                        'source_website': 'other',
+                        'status': 'available',
+                        'user_roles': ['buyer', 'staff', 'admin']
+                    }
+                    
+                    # Add optional fields if present
+                    if result.get('bedrooms'):
+                        property_data['bedrooms'] = result.get('bedrooms')
+                    if result.get('bathrooms'):
+                        property_data['bathrooms'] = result.get('bathrooms')
+                    if result.get('area_m2'):
+                        property_data['square_meters'] = result.get('area_m2')
+                    if result.get('lot_size_m2'):
+                        property_data['lot_size_m2'] = result.get('lot_size_m2')
+                    if result.get('amenities'):
+                        property_data['amenities'] = result.get('amenities', [])
+                    
+                    property_obj = Property.objects.create(**property_data)
+                    saved_count += 1
+                    logger.info(f"✅ Saved property: {property_obj.property_name}")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error saving property: {e}")
+                    errors.append(str(e))
+            
+            return Response({
+                'status': 'success',
+                'saved_count': saved_count,
+                'total_count': len(results),
+                'errors': errors if errors else None
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error saving to database: {e}", exc_info=True)
+            return Response({
+                'error': str(e),
+                'message': 'Failed to save to database'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

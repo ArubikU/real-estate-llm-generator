@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from decimal import Decimal
 import re
 import logging
+import openai
+from django.conf import settings
 from .base import BaseExtractor
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,227 @@ class BrevitasExtractor(BaseExtractor):
     def __init__(self):
         super().__init__()
         self.site_name = "brevitas.com"
+    
+    def extract(self, html: str, url: Optional[str] = None):
+        """Override extract to use AI enhancement with clean text."""
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Extract ALL relevant text from page (clean, no HTML tags)
+        full_text = self.extract_all_text(soup)
+        print(f"📝 Texto limpio extraído: {len(full_text)} caracteres (vs {len(html)} chars HTML)")
+        
+        # Use AI to process ALL the text and extract fields
+        ai_enhanced_data = self.enhance_with_ai(full_text)
+        
+        # Call parent extract
+        data = super().extract(html, url)
+        
+        # Merge AI-enhanced data (AI data takes precedence)
+        data.update(ai_enhanced_data)
+        
+        return data
+    
+    def extract_all_text(self, soup: BeautifulSoup) -> str:
+        """Extract ALL relevant visible text from Brevitas page."""
+        sections = []
+        
+        # 1. Title
+        title = soup.find('h1', class_='show__title')
+        if title:
+            sections.append(f"TITLE: {title.get_text(strip=True)}")
+        
+        # 2. Price
+        price = soup.find(class_='show__price')
+        if price:
+            sections.append(f"PRICE: {price.get_text(strip=True)}")
+        
+        # 3. Address
+        address = soup.find('p', class_='show__address')
+        if address:
+            sections.append(f"LOCATION: {address.get_text(strip=True)}")
+        
+        # 4. Property Details (Building Size, Lot Area, Beds, Baths, etc.)
+        details = soup.find_all(class_='product__detail')
+        if details:
+            details_text = []
+            for detail in details:
+                details_text.append(detail.get_text(strip=True))
+            sections.append("DETAILS:\n" + "\n".join(details_text))
+        
+        # 5. Description (most important)
+        description = soup.find('p', class_='show__copy')
+        if description:
+            desc_text = description.get_text(strip=True)
+            if desc_text:
+                sections.append(f"DESCRIPTION:\n{desc_text}")
+        
+        # 6. Property status badges
+        badges = soup.find_all(class_='label')
+        if badges:
+            badge_text = [badge.get_text(strip=True) for badge in badges]
+            sections.append("STATUS: " + " | ".join(badge_text))
+        
+        # Join all sections
+        return "\n\n".join(sections)
+    
+    def enhance_with_ai(self, full_text: str) -> dict:
+        """Use OpenAI to process clean text and extract ALL fields + generate professional description."""
+        try:
+            api_key = settings.OPENAI_API_KEY
+            if not api_key:
+                print("⚠️ OpenAI API key not configured, skipping AI enhancement")
+                return {}
+            
+            client = openai.OpenAI(api_key=api_key)
+            
+            # Limit text to reasonable size
+            text_to_process = full_text[:10000] if len(full_text) > 10000 else full_text
+            
+            # Save text to file for inspection
+            try:
+                with open('ai_input_text.txt', 'w', encoding='utf-8') as f:
+                    f.write(text_to_process)
+                print(f"💾 Texto guardado en: ai_input_text.txt ({len(text_to_process)} caracteres)")
+            except Exception as e:
+                print(f"⚠️ No se pudo guardar archivo: {e}")
+            
+            prompt = """Analyze the real estate property information and extract/normalize the following fields in JSON format:
+
+{
+  "title": "Property name or descriptive title (max 100 chars)",
+  "price_usd": <numeric price in USD>,
+  "bedrooms": <number or null>,
+  "bathrooms": <number or null>,
+  "area_m2": <number or null>,
+  "lot_size_m2": <number or null>,
+  "property_type": "Casa|Apartamento|Terreno|Lote|House|Land|Commercial|etc",
+  "listing_type": "sale|rent",
+  "location": "City, Province, Country",
+  "amenities": ["amenity1", "amenity2", ...],
+  "parking_spaces": <number or null>,
+  "pool": <boolean>,
+  "description": "Professional property description (3-4 sentences, max 600 chars)",
+  "units": <number of units if multi-unit property>
+}
+
+CRITICAL INSTRUCTIONS:
+
+TITLE:
+- Extract the actual property NAME or create a descriptive title
+- If there's unique features, mention them (e.g., "Oceanfront", "Titled Property", "Beach Access")
+- Format: "Unique Feature + Property Type in Location"
+- Example: "Oceanfront Titled Estate in El Roble" or "Luxury Mountain View Residence in Atenas"
+- Keep concise (max 100 chars)
+
+DESCRIPTION:
+- Write a professional, compelling summary highlighting ALL key selling points
+- Include: property type, location, size, unique features, main amenities, investment/use potential
+- Mention CRITICAL differentiators (titled ownership, beach access, retreat-ready, etc.)
+- Use complete sentences, professional real estate language
+- 3-4 sentences (around 400-600 characters)
+- Example: "Rare oceanfront titled property in El Roble offering full ownership rights without concession restrictions. Features a 2-story main house with 3br/3ba plus independent guest house with 1br/1ba, infinity pool, and direct beach access on a 2,200 m² lot. Prime location within 5 minutes of hospitals, restaurants, and schools, ideal for residential living, vacation rental, or boutique hospitality ventures."
+
+LOT SIZE:
+- CRITICAL: Extract lot area in square meters or convert from acres (1 acre = 4,046.86 m²)
+- Look for "Lot Area", "Lot Size", "Land Area" in sqft or acres
+- If in sqft: divide by 10.764 to get m²
+- If in acres: multiply by 4046.86 to get m²
+
+BUILDING SIZE:
+- Extract construction area in m²
+- Convert from sqft if needed (1 sqft = 0.092903 m²)
+- Look for "Building Size", "Total Construction", "Living Area"
+
+OTHER FIELDS:
+- Parse bedrooms/bathrooms as integers
+- Extract ALL amenities from description (pool, jacuzzi, terrace, garage, beach access, etc.)
+- Identify unique features (titled ownership, no concession, ocean views, etc.)
+- Property type: prefer "House", "Land", "Commercial" over Spanish terms for Brevitas
+- Parking spaces from "Parking Spots" field
+"""
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a real estate data extraction expert specializing in Costa Rica properties. Extract and normalize ALL property information accurately, including lot sizes and unique features. Always return valid JSON."},
+                    {"role": "user", "content": f"{prompt}\n\n{text_to_process}"}
+                ],
+                temperature=0,
+                max_tokens=2000,
+                response_format={"type": "json_object"}
+            )
+            
+            import json
+            ai_data = json.loads(response.choices[0].message.content)
+            
+            # Convert AI response to expected format
+            cleaned_data = {}
+            
+            if ai_data.get('title'):
+                cleaned_data['title'] = ai_data['title']
+            
+            if ai_data.get('price_usd'):
+                try:
+                    cleaned_data['price_usd'] = Decimal(str(ai_data['price_usd']))
+                except:
+                    pass
+            
+            if ai_data.get('bedrooms'):
+                try:
+                    cleaned_data['bedrooms'] = int(ai_data['bedrooms'])
+                except:
+                    pass
+            
+            if ai_data.get('bathrooms'):
+                try:
+                    cleaned_data['bathrooms'] = Decimal(str(ai_data['bathrooms']))
+                except:
+                    pass
+            
+            if ai_data.get('area_m2'):
+                try:
+                    cleaned_data['area_m2'] = Decimal(str(ai_data['area_m2']))
+                except:
+                    pass
+            
+            if ai_data.get('lot_size_m2'):
+                try:
+                    cleaned_data['lot_size_m2'] = Decimal(str(ai_data['lot_size_m2']))
+                except:
+                    pass
+            
+            if ai_data.get('property_type'):
+                cleaned_data['property_type'] = ai_data['property_type']
+            
+            if ai_data.get('listing_type'):
+                cleaned_data['listing_type'] = ai_data['listing_type']
+            
+            if ai_data.get('location'):
+                cleaned_data['location'] = ai_data['location']
+            
+            if ai_data.get('amenities') and isinstance(ai_data['amenities'], list):
+                cleaned_data['amenities'] = ai_data['amenities']
+            
+            if ai_data.get('parking_spaces'):
+                try:
+                    cleaned_data['parking_spaces'] = int(ai_data['parking_spaces'])
+                except:
+                    pass
+            
+            if ai_data.get('description'):
+                cleaned_data['description'] = ai_data['description']
+            
+            if ai_data.get('pool') is not None:
+                cleaned_data['pool'] = ai_data.get('pool')
+            
+            print(f"✅ AI enhanced data: {len(cleaned_data)} fields extracted")
+            return cleaned_data
+            
+        except Exception as e:
+            print(f"❌ AI enhancement error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {}
     
     def extract_title(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract property title."""

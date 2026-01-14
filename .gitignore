@@ -37,6 +37,14 @@ ENV/
 env.bak/
 venv.bak/
 
+# Google Sheets credentials
+backend/credentials/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+
 # IDE
 .vscode/
 .idea/
