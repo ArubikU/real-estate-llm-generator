@@ -342,8 +342,16 @@ export default function Chatbot() {
         throw new Error('No reader available');
       }
 
+      const readWithTimeout = async (reader: ReadableStreamDefaultReader<Uint8Array>) => {
+        const timeoutMs = 15000; // 15s timeout
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Network timeout - connection stalled')), timeoutMs)
+        );
+        return Promise.race([reader.read(), timeoutPromise]);
+      };
+
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithTimeout(reader);
 
         if (done) {
           console.log('✅ Stream complete');
@@ -511,25 +519,33 @@ export default function Chatbot() {
         <div className="chatbot-messages">
           {/* Example queries at top */}
           {messages.length === 1 && (
-            <div className="example-queries">
-              <h3>{t.chatbot.tryAsking}</h3>
-              <div className="example-queries-grid">
-                {exampleQueries.map((query, idx) => {
-                  const IconComponent = Icons[query.icon as keyof typeof Icons];
-                  return (
-                    <button
-                      key={idx}
-                      className="example-query-btn"
-                      onClick={() => handleExampleQuery(query.text)}
-                      disabled={isLoading}
-                    >
-                      {IconComponent && <IconComponent />}
-                      <span>{query.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="welcome-hero">
+                <div className="welcome-icon">
+                  <Icons.bot />
+                </div>
+                <h2>{t.chatbot.welcome}</h2>
+                <p className="welcome-subtitle">{t.chatbot.welcomeSubtitle || 'I can help you analyze properties, compare prices, and manage real estate data.'}</p>
               </div>
-            </div>
+              
+              <div className="example-queries">
+                <h3>{t.chatbot.tryAsking}</h3>
+                <div className="example-queries-grid">
+                  {exampleQueries.map((query, idx) => {
+                    const IconComponent = Icons[query.icon as keyof typeof Icons];
+                    return (
+                      <button
+                        key={idx}
+                        className="example-query-btn"
+                        onClick={() => handleExampleQuery(query.text)}
+                        disabled={isLoading}
+                      >
+                        {IconComponent && <IconComponent />}
+                        <span>{query.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
           )}
 
           {/* Messages */}
