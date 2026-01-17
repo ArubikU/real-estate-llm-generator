@@ -157,6 +157,7 @@ export interface Translations {
   // Chatbot
   chatbot: {
     welcome: string;
+    welcomeSubtitle: string;
     conversations: string;
     newChat: string;
     noConversations: string;
@@ -508,6 +509,7 @@ Puedes preguntar sobre:
 • Propiedades por ubicación (Tamarindo, Manuel Antonio, etc.)
 • Filtros específicos (precio, habitaciones, amenidades)
 • Información sobre una propiedad en particular`,
+      welcomeSubtitle: 'Puedo ayudarte a analizar propiedades, comparar precios y gestionar datos inmobiliarios.',
       conversations: 'Conversaciones',
       newChat: 'Nuevo Chat',
       noConversations: 'No hay conversaciones aún',
@@ -846,6 +848,7 @@ You can ask about:
 • Properties by location (Tamarindo, Manuel Antonio, etc.)
 • Specific filters (price, bedrooms, amenities)
 • Information about a particular property`,
+      welcomeSubtitle: 'I can help you analyze properties, compare prices, and manage real estate data.',
       conversations: 'Conversations',
       newChat: 'New Chat',
       noConversations: 'No conversations yet',
